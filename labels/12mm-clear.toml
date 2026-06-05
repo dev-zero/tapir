@@ -1,0 +1,6 @@
+name = "12mm Clear"
+tape_width_mm = 12
+background_color = "#F0F0F0"
+foreground_color = "#000000"
+tape_type = "D1"
+dymo_tape_color_id = 9
