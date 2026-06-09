@@ -1,43 +1,20 @@
-[[devices]]
-name = "LabelManager PnP"
-vendor_id = 0x0922
-product_id = 0x1002
-product_id_storage = 0x1001
-interface_class = 0x07
-max_tape_mm = 12
-dpi = 180
-synwait = 64
-modeswitch_payload = [0x1B, 0x5A, 0x01]
-
-[[devices]]
-name = "LabelManager Wireless PnP"
-vendor_id = 0x0922
-product_id = 0x1008
-product_id_storage = 0x1007
-interface_class = 0x07
-max_tape_mm = 12
-dpi = 180
-synwait = 64
-modeswitch_payload = [0x1B, 0x5A, 0x01]
-
-[[devices]]
-name = "LabelManager 280"
-vendor_id = 0x0922
-product_id = 0x1006
-product_id_storage = 0x1005
-interface_class = 0x07
-max_tape_mm = 12
-dpi = 180
-synwait = 64
-modeswitch_payload = [0x1B, 0x5A, 0x01]
-
-[[devices]]
-name = "LabelManager 420P"
-vendor_id = 0x0922
-product_id = 0x1004
-product_id_storage = 0x1003
-interface_class = 0x07
-max_tape_mm = 19
-dpi = 180
-synwait = 64
-modeswitch_payload = [0x1B, 0x5A, 0x01]
+default_label = "9mm Black on SteelBlue"
+default_canvas_width = 200
+font_favourites_medium = [
+    "Carlito",
+    "Liberation Sans",
+    "Liberation Mono",
+    "DejaVu Sans",
+    "DejaVu Sans Mono",
+    "Noto Sans",
+    "IBM Plex Mono",
+    "IBM Plex Sans",
+    "Inter",
+    "Fira Mono",
+    "Fira Sans Condensed",
+]
+font_favourites_small = [
+    "Thermal Sans Mono",
+    "Tiny5",
+]
+show_all_fonts = false

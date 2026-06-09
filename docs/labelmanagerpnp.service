@@ -1,0 +1,16 @@
+[Unit]
+Description=LabelManager PnP Web Interface
+After=network.target
+Before=getty@tty1.service
+
+[Service]
+Type=simple
+User=muellert
+WorkingDirectory=/home/muellert/project
+ExecStart=/home/muellert/project/labelmanagerpnp
+Restart=on-failure
+RestartSec=3
+Environment=RUST_LOG=labelmanagerpnp=info
+
+[Install]
+WantedBy=multi-user.target

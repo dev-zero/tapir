@@ -17,7 +17,9 @@ struct StaticAssets;
 
 pub struct AppState {
     pub config: config::AppConfig,
+    pub devices: Vec<config::DeviceDef>,
     pub labels: Vec<label::LabelDef>,
+    pub fonts: engine::text::FontStore,
 }
 
 #[tokio::main]
@@ -30,12 +32,26 @@ async fn main() {
         .init();
 
     let config = config::AppConfig::load_or_default("config.toml");
+    let devices = config::load_devices("devices/");
     let labels = label::load_labels("labels/");
+    let fonts = engine::text::FontStore::load(
+        "fonts/",
+        &config.font_favourites_medium,
+        &config.font_favourites_small,
+        config.show_all_fonts,
+    );
 
-    tracing::info!("Loaded {} device definitions", config.devices.len());
+    tracing::info!("Loaded {} device definitions", devices.len());
     tracing::info!("Loaded {} label definitions", labels.len());
+    let groups = fonts.groups();
+    tracing::info!(
+        "Loaded fonts: {} medium, {} small, {} system",
+        groups.medium.len(),
+        groups.small.len(),
+        groups.system.len(),
+    );
 
-    let state = Arc::new(RwLock::new(AppState { config, labels }));
+    let state = Arc::new(RwLock::new(AppState { config, devices, labels, fonts }));
 
     let app = Router::new()
         .route("/", get(index_handler))

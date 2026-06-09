@@ -1,6 +1,0 @@
-name = "9mm White"
-tape_width_mm = 9
-background_color = "#FFFFFF"
-foreground_color = "#000000"
-tape_type = "D1"
-dymo_tape_color_id = 0

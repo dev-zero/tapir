@@ -40,36 +40,15 @@ impl Bitmap1Bit {
         (self.data[byte_idx] >> bit_idx) & 1 == 1
     }
 
-    /// Rotates the bitmap 270° clockwise (equivalent to 90° counter-clockwise).
-    /// Required by the Dymo protocol: the image's X-axis becomes the tape feed
-    /// direction, Y-axis becomes tape height. Each column of the rotated output
-    /// is one "print line" sent to the printer.
-    pub fn rotate_270(&self) -> Bitmap1Bit {
-        let new_width = self.height;
-        let new_height = self.width;
-        let mut rotated = Bitmap1Bit::new(new_width, new_height);
-
-        for y in 0..self.height {
-            for x in 0..self.width {
-                if self.get_pixel(x, y) {
-                    let new_x = y;
-                    let new_y = self.width - 1 - x;
-                    rotated.set_pixel(new_x, new_y, true);
-                }
-            }
-        }
-
-        rotated
-    }
-
     pub fn column_bytes(&self, col: u32) -> Vec<u8> {
         let height_bytes = (self.height + 7) / 8;
         let mut bytes = vec![0u8; height_bytes as usize];
 
         for row in 0..self.height {
             if self.get_pixel(col, row) {
-                let byte_idx = (row / 8) as usize;
-                let bit_idx = 7 - (row % 8);
+                let inv = self.height - 1 - row;
+                let byte_idx = (inv / 8) as usize;
+                let bit_idx = 7 - (inv % 8);
                 bytes[byte_idx] |= 1 << bit_idx;
             }
         }
@@ -93,5 +72,27 @@ impl Bitmap1Bit {
         }
 
         Ok(bmp)
+    }
+
+    pub fn to_png(&self) -> Vec<u8> {
+        use image::{GrayImage, Luma};
+        let mut img = GrayImage::new(self.width, self.height);
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let val = if self.get_pixel(x, y) { 0u8 } else { 255u8 };
+                img.put_pixel(x, y, Luma([val]));
+            }
+        }
+        let mut buf = Vec::new();
+        let encoder = image::codecs::png::PngEncoder::new(&mut buf);
+        image::ImageEncoder::write_image(
+            encoder,
+            &img,
+            self.width,
+            self.height,
+            image::ColorType::L8.into(),
+        )
+        .expect("PNG encode failed");
+        buf
     }
 }

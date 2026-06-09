@@ -21,6 +21,7 @@
             <ul><li><strong>LabelManager PnP</strong></li></ul>
             <ul>
                 <li><span id="status-indicator">Disconnected</span></li>
+                <li><button id="btn-rescan" class="outline secondary" style="padding:0.25rem 0.5rem;font-size:0.8rem">Rescan</button></li>
             </ul>
         </nav>
 
@@ -31,8 +32,11 @@
                     <select id="label-select"></select>
                 </label>
                 <label>
-                    Width (px)
-                    <input type="number" id="canvas-width" value="300" min="16" max="1000" step="8">
+                    Mode
+                    <select id="mode-select">
+                        <option value="draw">Draw</option>
+                        <option value="text">Text</option>
+                    </select>
                 </label>
                 <label>
                     Zoom
@@ -42,7 +46,10 @@
         </section>
 
         <section id="editor">
-            <div class="toolbar">
+            <div class="toolbar" id="toolbar-draw">
+                <span style="font-size:0.8rem">Width (px)</span>
+                <input type="number" id="canvas-width" value="200" min="16" max="1000" step="8" style="width:5rem;padding:0.25rem 0.4rem;margin:0" title="Width (px)">
+                <span>|</span>
                 <button id="tool-pencil" aria-current="true">Pencil</button>
                 <button id="tool-eraser">Eraser</button>
                 <button id="tool-line">Line</button>
@@ -53,14 +60,45 @@
                 <button id="btn-redo">Redo</button>
                 <button id="btn-clear">Clear</button>
             </div>
+            <div class="toolbar" id="toolbar-text" style="display:none">
+                <select id="font-select" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem"></select>
+                <input type="number" id="font-size" value="54" min="8" max="128" step="1" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font size (px)">
+                <span style="font-size:0.8rem">px</span>
+                <select id="font-weight" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font weight">
+                    <option value="400">Regular</option>
+                    <option value="700">Bold</option>
+                </select>
+                <span style="border-left:2px solid var(--pico-muted-border-color);height:1.5rem;margin:0 0.25rem"></span>
+                <select id="text-valign" style="width:6rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Vertical align">
+                    <option value="center">Middle</option>
+                    <option value="top">Top</option>
+                    <option value="bottom">Bottom</option>
+                </select>
+                <select id="text-halign" style="width:5.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Horizontal align">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+                <span style="font-size:0.8rem">Spacing</span>
+                <input type="number" id="line-spacing" value="120" min="50" max="300" step="5" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Line spacing (%)">
+                <span style="font-size:0.8rem">%</span>
+            </div>
+            <div class="toolbar" id="toolbar-text-input" style="display:none">
+                <textarea id="text-input" placeholder="Label text…" rows="3" style="flex:1;padding:0.25rem 0.4rem;margin:0;resize:vertical;font-family:inherit"></textarea>
+            </div>
             <canvas id="editor-canvas"></canvas>
         </section>
 
         <section id="actions">
             <div class="grid">
                 <button id="btn-print" class="contrast">Print</button>
+                <button id="btn-feed" class="secondary">Feed</button>
                 <button id="btn-export" class="secondary">Export PNG</button>
             </div>
+            <label>
+                <input type="checkbox" id="chk-autofeed" checked>
+                Auto-feed after print
+            </label>
         </section>
     </main>
 

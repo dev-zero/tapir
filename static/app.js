@@ -4,10 +4,12 @@ const state = {
     labels: [],
     currentLabel: null,
     editor: null,
+    productId: null,
 };
 
 async function init() {
     await loadLabels();
+    await loadSettings();
     await checkStatus();
 
     const canvas = document.getElementById('editor-canvas');
@@ -16,8 +18,10 @@ async function init() {
 
     const height = state.currentLabel ? pixelHeight(state.currentLabel.tape_width_mm) : 64;
     const width = parseInt(widthInput.value, 10);
+    const fg = state.currentLabel ? state.currentLabel.foreground_color : '#000000';
+    const bg = state.currentLabel ? state.currentLabel.background_color : '#FFFFFF';
 
-    state.editor = new CanvasEditor(canvas, width, height, parseInt(zoomInput.value, 10));
+    state.editor = new CanvasEditor(canvas, width, height, parseInt(zoomInput.value, 10), fg, bg);
 
     widthInput.addEventListener('change', () => {
         state.editor.resize(parseInt(widthInput.value, 10), state.editor.height);
@@ -31,12 +35,16 @@ async function init() {
         const label = state.labels.find(l => l.name === e.target.value);
         if (label) {
             state.currentLabel = label;
+            state.editor.setColors(label.foreground_color, label.background_color);
             state.editor.resize(state.editor.width, pixelHeight(label.tape_width_mm));
         }
     });
 
     setupTools();
+    setupModes();
     setupActions();
+
+    document.getElementById('btn-rescan').addEventListener('click', () => checkStatus());
 }
 
 function pixelHeight(tapeMm) {
@@ -56,11 +64,30 @@ async function loadLabels() {
     for (const label of state.labels) {
         const opt = document.createElement('option');
         opt.value = label.name;
-        opt.textContent = `${label.name} (${label.tape_width_mm}mm)`;
+        const px = pixelHeight(label.tape_width_mm);
+        opt.textContent = `${label.name} (${px}px)`;
         select.appendChild(opt);
     }
 
     state.currentLabel = state.labels[0] || null;
+}
+
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.default_label) {
+            const label = state.labels.find(l => l.name === data.default_label);
+            if (label) {
+                state.currentLabel = label;
+                document.getElementById('label-select').value = label.name;
+            }
+        }
+        if (data.default_canvas_width) {
+            document.getElementById('canvas-width').value = data.default_canvas_width;
+        }
+    } catch {
+    }
 }
 
 async function checkStatus() {
@@ -68,7 +95,16 @@ async function checkStatus() {
         const res = await fetch('/api/status');
         const data = await res.json();
         const el = document.getElementById('status-indicator');
-        el.textContent = data.connected ? `Connected: ${data.device}` : 'Disconnected';
+        if (data.connected) {
+            el.textContent = `Connected: ${data.device}`;
+            state.productId = data.product_id;
+        } else if (data.needs_modeswitch) {
+            el.textContent = 'Storage mode — replug device to trigger modeswitch';
+            state.productId = null;
+        } else {
+            el.textContent = 'No printer';
+            state.productId = null;
+        }
     } catch {
         document.getElementById('status-indicator').textContent = 'Offline';
     }
@@ -91,18 +127,191 @@ function setupTools() {
     document.getElementById('btn-clear').addEventListener('click', () => state.editor.clear());
 }
 
+function setupModes() {
+    const modeSelect = document.getElementById('mode-select');
+    const toolbarDraw = document.getElementById('toolbar-draw');
+    const toolbarText = document.getElementById('toolbar-text');
+    const toolbarTextInput = document.getElementById('toolbar-text-input');
+
+    modeSelect.addEventListener('change', () => {
+        if (modeSelect.value === 'draw') {
+            toolbarDraw.style.display = '';
+            toolbarText.style.display = 'none';
+            toolbarTextInput.style.display = 'none';
+            state.editor.setReadOnly(false);
+        } else {
+            toolbarText.style.display = '';
+            toolbarTextInput.style.display = '';
+            toolbarDraw.style.display = 'none';
+            state.editor.setReadOnly(true);
+            state.editor.clear();
+            renderText();
+        }
+    });
+
+    const textInput = document.getElementById('text-input');
+    const fontSelect = document.getElementById('font-select');
+    const fontSize = document.getElementById('font-size');
+    const fontWeight = document.getElementById('font-weight');
+    const textValign = document.getElementById('text-valign');
+    const textHalign = document.getElementById('text-halign');
+    const lineSpacing = document.getElementById('line-spacing');
+
+    let debounceTimer = null;
+    const debouncedRender = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(renderText, 300);
+    };
+
+    textInput.addEventListener('input', debouncedRender);
+    fontSelect.addEventListener('change', () => {
+        updateWeightOptions();
+        renderText();
+    });
+    fontSize.addEventListener('change', () => renderText());
+    fontWeight.addEventListener('change', () => renderText());
+    textValign.addEventListener('change', () => renderText());
+    textHalign.addEventListener('change', () => renderText());
+    lineSpacing.addEventListener('change', () => renderText());
+
+    loadFonts();
+}
+
+let fontData = { medium: [], small: [], system: [] };
+
+function updateWeightOptions() {
+    const fontSelect = document.getElementById('font-select');
+    const weightSelect = document.getElementById('font-weight');
+    const selectedFamily = fontSelect.value;
+
+    const allFonts = [...fontData.medium, ...fontData.small, ...fontData.system];
+    const font = allFonts.find(f => f.family === selectedFamily);
+
+    const prevWeight = weightSelect.value;
+    weightSelect.innerHTML = '';
+
+    const weightNames = {
+        100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular',
+        500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black',
+    };
+
+    const weights = font ? font.weights : [400, 700];
+    for (const w of weights) {
+        const opt = document.createElement('option');
+        opt.value = w;
+        opt.textContent = weightNames[w] || `W${w}`;
+        weightSelect.appendChild(opt);
+    }
+
+    if (weights.includes(parseInt(prevWeight, 10))) {
+        weightSelect.value = prevWeight;
+    } else if (weights.includes(400)) {
+        weightSelect.value = '400';
+    }
+}
+
+async function loadFonts() {
+    try {
+        const res = await fetch('/api/fonts');
+        fontData = await res.json();
+    } catch {
+        fontData = { medium: [], small: [], system: [] };
+    }
+
+    const select = document.getElementById('font-select');
+    select.innerHTML = '';
+
+    const addGroup = (label, fonts) => {
+        if (!fonts.length) return;
+        const group = document.createElement('optgroup');
+        group.label = label;
+        for (const f of fonts) {
+            const opt = document.createElement('option');
+            opt.value = f.family;
+            opt.textContent = f.family;
+            group.appendChild(opt);
+        }
+        select.appendChild(group);
+    };
+
+    addGroup('Favourites (medium)', fontData.medium);
+    addGroup('Favourites (small)', fontData.small);
+    addGroup('System', fontData.system);
+
+    updateWeightOptions();
+}
+
+let renderAbort = null;
+
+async function renderText() {
+    const text = document.getElementById('text-input').value;
+    const font = document.getElementById('font-select').value;
+    const fontSize = parseInt(document.getElementById('font-size').value, 10);
+    const weight = parseInt(document.getElementById('font-weight').value, 10);
+    const valign = document.getElementById('text-valign').value;
+    const halign = document.getElementById('text-halign').value;
+    const lineSpacing = parseInt(document.getElementById('line-spacing').value, 10);
+    if (!text || !font) {
+        state.editor.clear();
+        return;
+    }
+
+    if (renderAbort) {
+        renderAbort.abort();
+    }
+    const controller = new AbortController();
+    renderAbort = controller;
+
+    try {
+        const res = await fetch('/api/render-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text, font, font_size: fontSize, weight,
+                height: state.editor.height,
+                valign, halign,
+                line_spacing: lineSpacing,
+            }),
+            signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (controller.signal.aborted) return;
+        await state.editor.loadFromPNG(blob);
+        document.getElementById('canvas-width').value = state.editor.width;
+    } catch (e) {
+        if (e.name !== 'AbortError') throw e;
+    } finally {
+        if (renderAbort === controller) {
+            renderAbort = null;
+        }
+    }
+}
+
 function setupActions() {
     document.getElementById('btn-print').addEventListener('click', async () => {
-        const png = state.editor.toPNG();
-        const res = await fetch('/api/print', { method: 'POST', body: png });
+        if (!state.productId) { alert('No printer connected'); return; }
+        const png = await state.editor.toPNG();
+        const autoFeed = document.getElementById('chk-autofeed').checked;
+        const url = `/api/printers/${state.productId}/print?auto_feed=${autoFeed}`;
+        const res = await fetch(url, { method: 'POST', body: png });
         const data = await res.json();
         if (!data.ok) {
             alert(data.error || 'Print failed');
         }
     });
 
-    document.getElementById('btn-export').addEventListener('click', () => {
-        const png = state.editor.toPNG();
+    document.getElementById('btn-feed').addEventListener('click', async () => {
+        if (!state.productId) { alert('No printer connected'); return; }
+        const res = await fetch(`/api/printers/${state.productId}/feed`, { method: 'POST' });
+        const data = await res.json();
+        if (!data.ok) {
+            alert(data.error || 'Feed failed');
+        }
+    });
+
+    document.getElementById('btn-export').addEventListener('click', async () => {
+        const png = await state.editor.toPNG();
         const url = URL.createObjectURL(new Blob([png], { type: 'image/png' }));
         const a = document.createElement('a');
         a.href = url;

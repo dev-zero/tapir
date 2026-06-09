@@ -1,0 +1,6 @@
+name = "12mm Black on Clear"
+tape_width_mm = 12
+background_color = "WhiteSmoke"
+foreground_color = "Black"
+tape_type = "D1"
+dymo_tape_color_id = 9

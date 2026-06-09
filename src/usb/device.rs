@@ -3,15 +3,13 @@ use nusb::transfer::{Bulk, Out};
 use serde::Serialize;
 use std::fmt;
 use std::io::Write;
-use std::time::Duration;
-
 const DYMO_VENDOR_ID: u16 = 0x0922;
-const USB_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Debug)]
 pub enum UsbError {
     DeviceNotFound,
     EndpointNotFound,
+    PermissionDenied,
     Nusb(nusb::Error),
     Transfer(nusb::transfer::TransferError),
     Io(std::io::Error),
@@ -22,6 +20,10 @@ impl fmt::Display for UsbError {
         match self {
             Self::DeviceNotFound => write!(f, "Dymo device not found"),
             Self::EndpointNotFound => write!(f, "Bulk endpoint not found on device"),
+            Self::PermissionDenied => write!(
+                f,
+                "Permission denied. Install udev rules to allow access to the Dymo device."
+            ),
             Self::Nusb(e) => write!(f, "USB error: {e}"),
             Self::Transfer(e) => write!(f, "Transfer error: {e}"),
             Self::Io(e) => write!(f, "IO error: {e}"),
@@ -93,51 +95,27 @@ pub fn enumerate_devices() -> Vec<DetectedDevice> {
     found
 }
 
-pub fn is_device_connected(product_id: u16) -> bool {
-    nusb::list_devices()
-        .wait()
-        .map(|devices| {
-            devices.into_iter().any(|d| {
-                d.vendor_id() == DYMO_VENDOR_ID && d.product_id() == product_id
-            })
-        })
-        .unwrap_or(false)
-}
-
-pub fn modeswitch(product_id_storage: u16, payload: &[u8]) -> Result<(), UsbError> {
-    let device_info = nusb::list_devices()
-        .wait()?
-        .find(|d| d.vendor_id() == DYMO_VENDOR_ID && d.product_id() == product_id_storage)
-        .ok_or(UsbError::DeviceNotFound)?;
-
-    let device = device_info.open().wait()?;
-    let interface = device.detach_and_claim_interface(0).wait()?;
-
-    interface
-        .control_out(
-            nusb::transfer::ControlOut {
-                control_type: nusb::transfer::ControlType::Class,
-                recipient: nusb::transfer::Recipient::Interface,
-                request: 0,
-                value: 0,
-                index: 0,
-                data: payload,
-            },
-            USB_TIMEOUT,
-        )
-        .wait()?;
-
-    Ok(())
-}
-
 pub fn send_print_data(product_id: u16, data: &[u8]) -> Result<(), UsbError> {
     let device_info = nusb::list_devices()
         .wait()?
         .find(|d| d.vendor_id() == DYMO_VENDOR_ID && d.product_id() == product_id)
         .ok_or(UsbError::DeviceNotFound)?;
 
-    let device = device_info.open().wait()?;
-    let interface = device.detach_and_claim_interface(0).wait()?;
+    let device = device_info.open().wait().map_err(|e| {
+        if cfg!(target_os = "linux") && is_permission_error(&e) {
+            UsbError::PermissionDenied
+        } else {
+            UsbError::Nusb(e)
+        }
+    })?;
+
+    let interface = device.detach_and_claim_interface(0).wait().map_err(|e| {
+        if cfg!(target_os = "linux") && is_permission_error(&e) {
+            UsbError::PermissionDenied
+        } else {
+            UsbError::Nusb(e)
+        }
+    })?;
 
     let ep_desc = interface
         .descriptor()
@@ -155,4 +133,27 @@ pub fn send_print_data(product_id: u16, data: &[u8]) -> Result<(), UsbError> {
     writer.flush()?;
 
     Ok(())
+}
+
+pub fn check_device_access(product_id: u16) -> Result<(), UsbError> {
+    let device_info = nusb::list_devices()
+        .wait()?
+        .find(|d| d.vendor_id() == DYMO_VENDOR_ID && d.product_id() == product_id)
+        .ok_or(UsbError::DeviceNotFound)?;
+
+    device_info.open().wait().map_err(|e| {
+        if cfg!(target_os = "linux") && is_permission_error(&e) {
+            UsbError::PermissionDenied
+        } else {
+            UsbError::Nusb(e)
+        }
+    })?;
+
+    Ok(())
+}
+
+fn is_permission_error(e: &nusb::Error) -> bool {
+    e.to_string().contains("Permission denied")
+        || e.to_string().contains("LIBUSB_ERROR_ACCESS")
+        || e.to_string().contains("EACCES")
 }

@@ -8,7 +8,7 @@ and clipping are known pain points. A pixel editor gives direct control over
 what lands on the tape, bypassing font-rendering issues entirely.
 
 This project is a **Rust-native** label printer interface for the Dymo LabelManager PnP,
-running on a Raspberry Pi, accessible via browser.
+running on any Linux box, accessible via browser.
 
 ---
 
@@ -292,7 +292,7 @@ lp -d label -o landscape label.png
 
 1. The whole point of the pixel editor is **exact pixel control**. CUPS adds a
    rasterization step that can resample or shift pixels — defeating the purpose.
-2. Zero dependencies on the target RPi (no cups, no printer-driver-dymo, no ghostscript).
+2. Zero dependencies on the target (no cups, no printer-driver-dymo, no ghostscript).
 3. The protocol is trivial (~6 ESC commands). CUPS adds massive overhead for no benefit.
 4. Immediate error feedback (status byte) vs. opaque CUPS job failures.
 
@@ -301,7 +301,7 @@ desirable, we could add a CUPS backend mode that:
 - Installs as a CUPS filter (`raster2labelmanager-rust`)
 - Accepts CUPS raster input → our print pipeline
 - This would allow `lp` commands and network sharing alongside the web UI
-- But this is not needed for the primary use case (dedicated RPi appliance)
+- But this is not needed for the primary use case (dedicated Linux host)
 
 ### CUPS as fallback (if nusb fails)
 
@@ -328,7 +328,7 @@ This is actually simpler than CUPS and still avoids the rasterizer problem.
 └────────────┼────────────────────────────────────┘
              │
 ┌────────────┼────────────────────────────────────┐
-│  Rust Server (axum)                  RPi        │
+│  Rust Server (axum)              Linux host     │
 │  ┌─────────┴───────────┐                       │
 │  │  Web layer (axum)   │                       │
 │  │  - Static files     │                       │
@@ -368,7 +368,7 @@ This is actually simpler than CUPS and still avoids the rasterizer problem.
 | **USB** | `nusb` 0.2.x | Pure Rust, no libusb dependency, async-first, works on Linux ARM. No C toolchain needed on target. |
 | **Image handling** | `image` crate | 1-bit bitmap manipulation, PNG encoding for previews. |
 | **Frontend** | Vanilla HTML5 Canvas + ES modules + Pico CSS | No Node/npm/bundler. Pixel editor uses raw Canvas API. Pico CSS for classless form styling. All embedded in binary. |
-| **Config persistence** | TOML file (`serde` + `toml`) | Human-readable, easy to edit on RPi. |
+| **Config persistence** | TOML file (`serde` + `toml`) | Human-readable, easy to edit on the host. |
 | **Cross-compilation** | `cross` or `cargo-zigbuild` | Target `aarch64-unknown-linux-gnu` from dev machine. |
 
 ---
@@ -579,7 +579,7 @@ fn print(bitmap: &Bitmap1Bit, tape_mm: u8) -> Result<()> {
 
 2. **Mode switch from Rust**: nusb should be able to send the mode switch bytes to
    endpoint 0x01 on the mass storage device. If not, we may need a udev rule
-   with usb_modeswitch as a fallback (standard RPi setup).
+   with usb_modeswitch as a fallback (standard Linux setup).
 
 3. **Print head gap**: There's an 8.1mm gap between print head and cutter.
    Labelle compensates with asymmetric margins (0px leading, 2*gap trailing).
@@ -600,12 +600,15 @@ fn print(bitmap: &Bitmap1Bit, tape_mm: u8) -> Result<()> {
 # Development (host machine)
 cargo run
 
-# Cross-compile for RPi
+# Cross-compile for aarch64 Linux (e.g. Raspberry Pi)
 cross build --release --target aarch64-unknown-linux-gnu
 
+# Or for x86_64 Linux
+cross build --release --target x86_64-unknown-linux-gnu
+
 # Deploy
-scp target/aarch64-unknown-linux-gnu/release/labelmanagerpnp pi@raspberrypi:~/
-ssh pi@raspberrypi './labelmanagerpnp'
+scp target/<target>/release/labelmanagerpnp user@host:~/
+ssh user@host './labelmanagerpnp'
 
 # Systemd service for auto-start
 # [Unit]
@@ -648,6 +651,6 @@ ACTION=="add", SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="10
 | 12 | Widget: QR + barcode | 4 | M |
 | 13 | Frontend: widget mode panels | 10,11 | M |
 | 14 | Presets system | 5,11 | S |
-| 15 | Cross-compilation + RPi deploy | all | S |
+| 15 | Cross-compilation + deploy | all | S |
 
 **Parallelizable**: Tasks 1-6 can run in parallel. Task 8 (frontend) is independent of backend until integration (9).

@@ -1,12 +1,15 @@
 export class CanvasEditor {
-    constructor(canvas, width, height, zoom) {
+    constructor(canvas, width, height, zoom, fgColor, bgColor) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.width = width;
         this.height = height;
         this.zoom = zoom;
+        this.fgColor = fgColor || '#000000';
+        this.bgColor = bgColor || '#FFFFFF';
         this.tool = 'pencil';
         this.drawing = false;
+        this.readOnly = false;
         this.startX = 0;
         this.startY = 0;
         this.previewBitmap = null;
@@ -50,6 +53,12 @@ export class CanvasEditor {
         this.tool = tool;
     }
 
+    setColors(fgColor, bgColor) {
+        this.fgColor = fgColor;
+        this.bgColor = bgColor;
+        this.render();
+    }
+
     pixelAt(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = Math.floor((e.clientX - rect.left) / this.zoom);
@@ -68,10 +77,10 @@ export class CanvasEditor {
     }
 
     render() {
-        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillStyle = this.bgColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        this.ctx.fillStyle = '#000000';
+        this.ctx.fillStyle = this.fgColor;
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 if (this.bitmap[y * this.width + x]) {
@@ -100,6 +109,7 @@ export class CanvasEditor {
 
     bindEvents() {
         this.canvas.addEventListener('mousedown', (e) => {
+            if (this.readOnly) return;
             this.drawing = true;
             const { x, y } = this.pixelAt(e);
             this.startX = x;
@@ -131,7 +141,7 @@ export class CanvasEditor {
             }
         });
 
-        this.canvas.addEventListener('mouseup', (e) => {
+        document.addEventListener('mouseup', (e) => {
             if (!this.drawing) return;
             this.drawing = false;
 
@@ -148,18 +158,6 @@ export class CanvasEditor {
             }
 
             this.saveState();
-        });
-
-        this.canvas.addEventListener('mouseleave', () => {
-            if (this.drawing) {
-                this.drawing = false;
-                if (this.previewBitmap) {
-                    this.bitmap = new Uint8Array(this.previewBitmap);
-                    this.previewBitmap = null;
-                    this.render();
-                }
-                this.saveState();
-            }
         });
     }
 
@@ -248,6 +246,43 @@ export class CanvasEditor {
         this.bitmap.fill(0);
         this.render();
         this.saveState();
+    }
+
+    setReadOnly(readOnly) {
+        this.readOnly = readOnly;
+        this.canvas.style.cursor = readOnly ? 'default' : 'crosshair';
+    }
+
+    loadFromPNG(blob) {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        return new Promise((resolve) => {
+            img.onload = () => {
+                this.width = img.width;
+                this.height = img.height;
+                this.bitmap = new Uint8Array(img.width * img.height);
+
+                const tmp = document.createElement('canvas');
+                tmp.width = img.width;
+                tmp.height = img.height;
+                const tmpCtx = tmp.getContext('2d');
+                tmpCtx.drawImage(img, 0, 0);
+                const imgData = tmpCtx.getImageData(0, 0, img.width, img.height);
+
+                for (let y = 0; y < img.height; y++) {
+                    for (let x = 0; x < img.width; x++) {
+                        const i = (y * img.width + x) * 4;
+                        const luma = imgData.data[i];
+                        this.bitmap[y * this.width + x] = luma < 128 ? 1 : 0;
+                    }
+                }
+
+                URL.revokeObjectURL(url);
+                this.applySize();
+                resolve();
+            };
+            img.src = url;
+        });
     }
 
     toPNG() {
