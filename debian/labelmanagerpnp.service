@@ -1,0 +1,15 @@
+[Unit]
+Description=LabelManager PnP Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=labelmanagerpnp
+WorkingDirectory=/etc/labelmanagerpnp
+ExecStart=/usr/bin/labelmanagerpnp --config /etc/labelmanagerpnp/config.toml
+Restart=on-failure
+RestartSec=3
+Environment=RUST_LOG=labelmanagerpnp=info
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release
+
+override_dh_auto_install:
+	install -Dm755 target/release/labelmanagerpnp debian/labelmanagerpnp/usr/bin/labelmanagerpnp
+	install -Dm644 debian/labelmanagerpnp.service debian/labelmanagerpnp/lib/systemd/system/labelmanagerpnp.service
+	install -Dm644 debian/99-dymo-labelmanager.rules debian/labelmanagerpnp/lib/udev/rules.d/99-dymo-labelmanager.rules
+	install -Dm644 debian/usb-modeswitch-dymo.conf debian/labelmanagerpnp/etc/usb_modeswitch.d/0922:1001
+	install -dm755 debian/labelmanagerpnp/etc/labelmanagerpnp
+	install -Dm644 config.toml debian/labelmanagerpnp/etc/labelmanagerpnp/config.toml
+	cp -r devices debian/labelmanagerpnp/etc/labelmanagerpnp/devices
+	cp -r labels debian/labelmanagerpnp/etc/labelmanagerpnp/labels
+	cp -r fonts debian/labelmanagerpnp/etc/labelmanagerpnp/fonts
+
+override_dh_auto_test:

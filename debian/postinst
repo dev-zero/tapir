@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        if ! getent passwd labelmanagerpnp >/dev/null 2>&1; then
+            adduser --system --group --no-create-home --home /etc/labelmanagerpnp labelmanagerpnp
+        fi
+        udevadm control --reload-rules || true
+        udevadm trigger || true
+        ;;
+esac
+
+#DEBHELPER#

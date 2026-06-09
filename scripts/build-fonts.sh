@@ -10,14 +10,17 @@ trap 'rm -rf "$BUILD_DIR"' EXIT
 
 check_deps() {
     local missing=()
-    for cmd in curl tar fontforge potrace; do
+    for cmd in curl tar python3; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
     done
+    if ! python3 -c "import fontTools" &>/dev/null; then
+        missing+=("python3-fonttools")
+    fi
     if [[ ${#missing[@]} -gt 0 ]]; then
         echo "Missing dependencies: ${missing[*]}"
-        echo "Install: sudo apt install ${missing[*]}"
+        echo "Install: nix-shell -p python3Packages.fonttools  (or pip install fonttools)"
         exit 1
     fi
 }
@@ -38,7 +41,7 @@ download_github_file() {
 }
 
 build_thermal_sans_mono() {
-    echo "Building Thermal Sans Mono (BDF → outlined TTF)..."
+    echo "Building Thermal Sans Mono (BDF → outlined TTF via fonttools)..."
     local tarball="$BUILD_DIR/thermal.tar.gz"
     curl -sSfL -o "$tarball" \
         "https://github.com/mike42/thermal-sans-mono/releases/download/v0.2/thermal-sans-mono-v0.2.tar.gz"
@@ -47,52 +50,7 @@ build_thermal_sans_mono() {
     local bdf="$BUILD_DIR/thermal-sans-mono/thermal-sans-mono-24/thermal-sans-mono-24.bdf"
     local outpath="$FONTS_DIR/ThermalSansMono.ttf"
 
-    fontforge -lang=py -c "
-import fontforge, os, tempfile
-
-fontforge.setPrefs('PreferPotrace', True)
-
-out = fontforge.font()
-out.familyname = 'Thermal Sans Mono'
-out.fontname = 'ThermalSansMono'
-out.fullname = 'Thermal Sans Mono'
-out.weight = 'Regular'
-out.os2_weight = 400
-out.em = 1000
-out.ascent = 800
-out.descent = 200
-
-bdf = fontforge.open('$bdf')
-tmpdir = tempfile.mkdtemp()
-
-for glyph in bdf.glyphs():
-    if not glyph.isWorthOutputting():
-        continue
-    enc = glyph.encoding
-    if enc < 0 or enc > 0xFFFF:
-        continue
-    bmp_path = os.path.join(tmpdir, f'{enc}.bmp')
-    try:
-        glyph.export(bmp_path, pixelsize=24)
-    except:
-        continue
-    if not os.path.exists(bmp_path):
-        continue
-    g = out.createChar(enc)
-    g.width = int(glyph.width * 1000 / 24)
-    try:
-        g.importOutlines(bmp_path)
-        g.removeOverlap()
-        g.simplify()
-        g.round()
-    except:
-        pass
-
-bdf.close()
-out.autoHint()
-out.generate('$outpath')
-out.close()
-" 2>/dev/null
+    python3 "$SCRIPT_DIR/bdf2ttf.py" "$bdf" "$outpath"
 
     if [[ -f "$outpath" ]]; then
         echo "  ✓ ThermalSansMono.ttf"

@@ -140,7 +140,7 @@ async fn print_bitmap(
 
     let (bytes_per_line, tape_color_id, synwait, min_label_feed) = match dev_def {
         Some(def) => {
-            let bpl = (8u8 * def.max_tape_mm) / 12;
+            let bpl = ((bitmap.height + 7) / 8) as u8;
             (bpl, 0u8, def.synwait, def.min_label_feed_lines)
         }
         None => (8u8, 0u8, 64u16, FEED_LINES_FOR_CUT * 3),

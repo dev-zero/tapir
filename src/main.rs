@@ -39,6 +39,7 @@ async fn main() {
         &config.font_favourites_medium,
         &config.font_favourites_small,
         config.show_all_fonts,
+        &config.font_native_sizes,
     );
 
     tracing::info!("Loaded {} device definitions", devices.len());

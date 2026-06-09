@@ -13,6 +13,8 @@ use super::bitmap::Bitmap1Bit;
 pub struct FontInfo {
     pub family: String,
     pub weights: Vec<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub native_size: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -34,6 +36,7 @@ impl FontStore {
         favourites_medium: &[String],
         favourites_small: &[String],
         show_all_fonts: bool,
+        native_sizes: &BTreeMap<String, u32>,
     ) -> Self {
         let mut db = cosmic_text::fontdb::Database::new();
 
@@ -60,6 +63,7 @@ impl FontStore {
                 medium.push(FontInfo {
                     family: name.clone(),
                     weights: weights.iter().copied().collect(),
+                    native_size: native_sizes.get(name.as_str()).copied(),
                 });
             }
         }
@@ -70,6 +74,7 @@ impl FontStore {
                 small.push(FontInfo {
                     family: name.clone(),
                     weights: weights.iter().copied().collect(),
+                    native_size: native_sizes.get(name.as_str()).copied(),
                 });
             }
         }
@@ -86,6 +91,7 @@ impl FontStore {
                     system.push(FontInfo {
                         family: family.clone(),
                         weights: weights.iter().copied().collect(),
+                        native_size: native_sizes.get(family.as_str()).copied(),
                     });
                 }
             }
@@ -170,6 +176,9 @@ impl FontStore {
         }
 
         if max_x <= 0 {
+            tracing::debug!(
+                "render_text: no glyph extent for font={font_family} size={font_size} weight={weight}"
+            );
             return None;
         }
 
@@ -209,6 +218,9 @@ impl FontStore {
         }
 
         if temp_pixels.is_empty() {
+            tracing::debug!(
+                "render_text: no pixels rasterized for font={font_family} size={font_size} width={width}"
+            );
             return None;
         }
 

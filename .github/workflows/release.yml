@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            arch: amd64
+            artifact: labelmanagerpnp-linux-amd64
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            arch: arm64
+            artifact: labelmanagerpnp-linux-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build static binary
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: cp target/${{ matrix.target }}/release/labelmanagerpnp ${{ matrix.artifact }}
+
+      - name: Build Debian package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="labelmanagerpnp_${VERSION}_${{ matrix.arch }}"
+          PKG_DIR="deb-build/${PKG}"
+
+          mkdir -p "${PKG_DIR}/DEBIAN"
+          mkdir -p "${PKG_DIR}/usr/bin"
+          mkdir -p "${PKG_DIR}/lib/systemd/system"
+          mkdir -p "${PKG_DIR}/lib/udev/rules.d"
+          mkdir -p "${PKG_DIR}/etc/usb_modeswitch.d"
+          mkdir -p "${PKG_DIR}/etc/labelmanagerpnp/devices"
+          mkdir -p "${PKG_DIR}/etc/labelmanagerpnp/labels"
+          mkdir -p "${PKG_DIR}/etc/labelmanagerpnp/fonts"
+
+          cp target/${{ matrix.target }}/release/labelmanagerpnp "${PKG_DIR}/usr/bin/"
+          chmod 755 "${PKG_DIR}/usr/bin/labelmanagerpnp"
+          cp debian/labelmanagerpnp.service "${PKG_DIR}/lib/systemd/system/"
+          cp debian/99-dymo-labelmanager.rules "${PKG_DIR}/lib/udev/rules.d/"
+          cp debian/usb-modeswitch-dymo.conf "${PKG_DIR}/etc/usb_modeswitch.d/0922:1001"
+          cp config.toml "${PKG_DIR}/etc/labelmanagerpnp/"
+          cp devices/*.toml "${PKG_DIR}/etc/labelmanagerpnp/devices/" 2>/dev/null || true
+          cp labels/*.toml "${PKG_DIR}/etc/labelmanagerpnp/labels/" 2>/dev/null || true
+          cp fonts/*.ttf "${PKG_DIR}/etc/labelmanagerpnp/fonts/" 2>/dev/null || true
+
+          INSTALLED_SIZE=$(du -sk "${PKG_DIR}" | cut -f1)
+
+          cat > "${PKG_DIR}/DEBIAN/control" << CTRL
+          Package: labelmanagerpnp
+          Version: ${VERSION}
+          Architecture: ${{ matrix.arch }}
+          Maintainer: Thomas Mueller <muellert@users.noreply.github.com>
+          Depends: usb-modeswitch, usb-modeswitch-data
+          Installed-Size: ${INSTALLED_SIZE}
+          Section: utils
+          Priority: optional
+          Homepage: https://github.com/muellert/labelmanagerpnp
+          Description: Web interface for Dymo LabelManager PnP label printers
+           Rust-native single-binary web interface for Dymo LabelManager PnP
+           and compatible D1-tape label printers with pixel editor and text mode.
+          CTRL
+
+          printf '/etc/labelmanagerpnp/config.toml\n' > "${PKG_DIR}/DEBIAN/conffiles"
+
+          cp debian/postinst "${PKG_DIR}/DEBIAN/postinst"
+          chmod 755 "${PKG_DIR}/DEBIAN/postinst"
+
+          dpkg-deb --build --root-owner-group "${PKG_DIR}"
+          mv "deb-build/${PKG}.deb" "${PKG}.deb"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            *.deb
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/*

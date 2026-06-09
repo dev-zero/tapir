@@ -18,3 +18,7 @@ font_favourites_small = [
     "Tiny5",
 ]
 show_all_fonts = false
+
+[font_native_sizes]
+"Thermal Sans Mono" = 24
+"Tiny5" = 5

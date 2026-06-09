@@ -166,6 +166,7 @@ function setupModes() {
     textInput.addEventListener('input', debouncedRender);
     fontSelect.addEventListener('change', () => {
         updateWeightOptions();
+        updateFontSizeOptions();
         renderText();
     });
     fontSize.addEventListener('change', () => renderText());
@@ -210,6 +211,70 @@ function updateWeightOptions() {
     }
 }
 
+function updateFontSizeOptions() {
+    const fontSelect = document.getElementById('font-select');
+    const fontSizeEl = document.getElementById('font-size');
+    const selectedFamily = fontSelect.value;
+
+    const allFonts = [...fontData.medium, ...fontData.small, ...fontData.system];
+    const font = allFonts.find(f => f.family === selectedFamily);
+
+    const prevSize = parseInt(fontSizeEl.value, 10);
+
+    if (font && font.native_size) {
+        const ns = font.native_size;
+        const maxSize = Math.max(64, ns * 4);
+        const sizes = [];
+        for (let s = ns; s <= maxSize; s += ns) {
+            sizes.push(s);
+        }
+
+        if (fontSizeEl.tagName === 'INPUT') {
+            const sel = document.createElement('select');
+            sel.id = 'font-size';
+            sel.style.cssText = fontSizeEl.style.cssText;
+            for (const s of sizes) {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = `${s}px`;
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => renderText());
+            fontSizeEl.replaceWith(sel);
+            if (sizes.includes(prevSize)) {
+                sel.value = prevSize;
+            } else {
+                sel.value = ns;
+            }
+        } else {
+            fontSizeEl.innerHTML = '';
+            for (const s of sizes) {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = `${s}px`;
+                fontSizeEl.appendChild(opt);
+            }
+            if (sizes.includes(prevSize)) {
+                fontSizeEl.value = prevSize;
+            } else {
+                fontSizeEl.value = ns;
+            }
+        }
+    } else {
+        if (fontSizeEl.tagName === 'SELECT') {
+            const input = document.createElement('input');
+            input.id = 'font-size';
+            input.type = 'number';
+            input.min = '6';
+            input.max = '128';
+            input.value = prevSize || 24;
+            input.style.cssText = fontSizeEl.style.cssText;
+            input.addEventListener('change', () => renderText());
+            fontSizeEl.replaceWith(input);
+        }
+    }
+}
+
 async function loadFonts() {
     try {
         const res = await fetch('/api/fonts');
@@ -239,6 +304,7 @@ async function loadFonts() {
     addGroup('System', fontData.system);
 
     updateWeightOptions();
+    updateFontSizeOptions();
 }
 
 let renderAbort = null;

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::usb::protocol::FEED_LINES_FOR_CUT;
@@ -14,6 +16,8 @@ pub struct AppConfig {
     pub font_favourites_small: Vec<String>,
     #[serde(default = "default_show_all_fonts")]
     pub show_all_fonts: bool,
+    #[serde(default)]
+    pub font_native_sizes: BTreeMap<String, u32>,
 }
 
 fn default_canvas_width() -> u16 {
@@ -111,6 +115,10 @@ impl Default for AppConfig {
             font_favourites_medium: default_font_favourites_medium(),
             font_favourites_small: default_font_favourites_small(),
             show_all_fonts: default_show_all_fonts(),
+            font_native_sizes: BTreeMap::from([
+                ("Thermal Sans Mono".to_string(), 24),
+                ("Tiny5".to_string(), 5),
+            ]),
         }
     }
 }
