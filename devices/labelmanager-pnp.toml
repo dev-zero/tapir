@@ -1,0 +1,9 @@
+name = "LabelManager PnP"
+vendor_id = 0x0922
+product_id = 0x1002
+product_id_storage = 0x1001
+max_tape_mm = 12
+dpi = 180
+synwait = 64
+feed_lines_for_cut = 57
+minimal_autofeed_lines = 180

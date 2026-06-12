@@ -1,0 +1,26 @@
+default_label = "9mm Black on SteelBlue"
+default_canvas_width = 200
+font_favourites_medium = [
+    "Carlito",
+    "Liberation Sans",
+    "Liberation Mono",
+    "DejaVu Sans",
+    "DejaVu Sans Mono",
+    "Noto Sans",
+    "IBM Plex Mono",
+    "IBM Plex Sans",
+    "Inter",
+    "Fira Mono",
+    "Fira Sans Condensed",
+]
+font_favourites_small = [
+    "Thermal Sans Mono 24",
+    "Thermal Sans Mono 17",
+    "Tiny5",
+]
+show_all_fonts = false
+
+[font_native_sizes]
+"Thermal Sans Mono 24" = 24
+"Thermal Sans Mono 17" = 17
+"Tiny5" = 5

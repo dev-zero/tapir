@@ -1,0 +1,8 @@
+# Dymo LabelManager PnP — allow non-root access after modeswitch
+ACTION=="add", ATTR{idVendor}=="0922", ATTR{idProduct}=="1002", MODE="0666"
+# Dymo LabelManager 420P
+ACTION=="add", ATTR{idVendor}=="0922", ATTR{idProduct}=="1004", MODE="0666"
+# Dymo LabelManager 280
+ACTION=="add", ATTR{idVendor}=="0922", ATTR{idProduct}=="1006", MODE="0666"
+# Dymo LabelManager Wireless PnP
+ACTION=="add", ATTR{idVendor}=="0922", ATTR{idProduct}=="1008", MODE="0666"

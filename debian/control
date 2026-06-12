@@ -1,0 +1,18 @@
+Source: labelmanagerpnp
+Section: utils
+Priority: optional
+Maintainer: Thomas Mueller <muellert@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc
+Standards-Version: 4.6.2
+Homepage: https://github.com/muellert/labelmanagerpnp
+
+Package: labelmanagerpnp
+Architecture: any
+Depends: ${misc:Depends}, usb-modeswitch, usb-modeswitch-data
+Description: Web interface for Dymo LabelManager PnP label printers
+ Rust-native single-binary web interface for Dymo LabelManager PnP
+ and compatible D1-tape label printers. Provides a pixel editor and
+ text rendering mode accessible from any browser on the local network.
+ .
+ Features: direct USB printing via nusb, cosmic-text font rendering,
+ REST API, embedded static assets, configurable label definitions.
