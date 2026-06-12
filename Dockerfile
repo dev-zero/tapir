@@ -11,9 +11,9 @@ RUN cargo build --release --target x86_64-unknown-linux-musl
 # Runtime stage
 FROM scratch
 
-COPY --from=builder /src/target/x86_64-unknown-linux-musl/release/labelforge /labelforge
+COPY --from=builder /src/target/x86_64-unknown-linux-musl/release/tapir /tapir
 COPY --from=builder /src/config.toml /config.toml
 
 EXPOSE 3000
 
-ENTRYPOINT ["/labelforge"]
+ENTRYPOINT ["/tapir"]

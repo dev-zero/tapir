@@ -1,6 +1,6 @@
-# labelforge
+# tapir
 
-A Rust-native web interface for the Dymo LabelManager PnP. Inspired by [labelle](https://github.com/labelle-org/labelle), built from scratch to just work.
+**T**ape **P**rinter **I**n **R**ust — a web interface for the Dymo LabelManager PnP. Inspired by [labelle](https://github.com/labelle-org/labelle), built from scratch to just work.
 
 ## Features
 
@@ -13,7 +13,7 @@ A Rust-native web interface for the Dymo LabelManager PnP. Inspired by [labelle]
 
 ```sh
 cargo build --release
-./target/release/labelforge
+./target/release/tapir
 ```
 
 Then open `http://localhost:3000` in your browser.
@@ -21,8 +21,8 @@ Then open `http://localhost:3000` in your browser.
 ## Docker
 
 ```sh
-docker build -t labelforge .
-docker run --rm --device /dev/bus/usb -p 3000:3000 labelforge
+docker build -t tapir .
+docker run --rm --device /dev/bus/usb -p 3000:3000 tapir
 ```
 
 ## Configuration
