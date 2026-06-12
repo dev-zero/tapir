@@ -13,6 +13,8 @@ FROM scratch
 
 COPY --from=builder /src/target/x86_64-unknown-linux-musl/release/tapir /tapir
 COPY --from=builder /src/config.toml /config.toml
+COPY --from=builder /src/labels/ /labels/
+COPY --from=builder /src/fonts/ /fonts/
 
 EXPOSE 3000
 
