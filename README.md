@@ -25,6 +25,13 @@ docker build -t tapir .
 docker run --rm --device /dev/bus/usb -p 3000:3000 tapir
 ```
 
+To use a custom configuration, bind-mount your `config.toml` into the container:
+
+```sh
+docker run --rm --device /dev/bus/usb -p 3000:3000 \
+  -v ./config.toml:/config.toml:rw tapir
+```
+
 ## Configuration
 
 Edit `config.toml` to customize default label settings and font preferences.
