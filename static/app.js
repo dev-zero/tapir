@@ -1,5 +1,34 @@
 import { CanvasEditor } from './canvas-editor.js';
 
+const STORAGE_KEY = 'tapir_prefs';
+let prefs = {};
+
+function loadPrefs() {
+    try {
+        prefs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch {
+        prefs = {};
+    }
+}
+
+function savePrefs() {
+    const fontSizeEl = document.getElementById('font-size');
+    const saved = {
+        label: document.getElementById('label-select').value,
+        mode: document.getElementById('mode-select').value,
+        canvas_width: document.getElementById('canvas-width').value,
+        zoom: document.getElementById('zoom').value,
+        auto_feed: document.getElementById('auto-feed').value,
+        font: document.getElementById('font-select').value,
+        font_size: fontSizeEl ? fontSizeEl.value : null,
+        font_weight: document.getElementById('font-weight').value,
+        text_valign: document.getElementById('text-valign').value,
+        text_halign: document.getElementById('text-halign').value,
+        line_spacing: document.getElementById('line-spacing').value,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+}
+
 const state = {
     labels: [],
     currentLabel: null,
@@ -8,6 +37,7 @@ const state = {
 };
 
 async function init() {
+    loadPrefs();
     await loadLabels();
     await loadSettings();
     await checkStatus();
@@ -15,6 +45,19 @@ async function init() {
     const canvas = document.getElementById('editor-canvas');
     const widthInput = document.getElementById('canvas-width');
     const zoomInput = document.getElementById('zoom');
+
+    // Restore saved label (overrides first-in-list default)
+    if (prefs.label) {
+        const label = state.labels.find(l => l.name === prefs.label);
+        if (label) {
+            state.currentLabel = label;
+            document.getElementById('label-select').value = label.name;
+        }
+    }
+
+    // Saved canvas width and zoom override server defaults
+    if (prefs.canvas_width) widthInput.value = prefs.canvas_width;
+    if (prefs.zoom) zoomInput.value = prefs.zoom;
 
     const height = pixelHeight(state.currentLabel);
     const margin = state.currentLabel ? (state.currentLabel.margin_px || 0) : 0;
@@ -26,10 +69,12 @@ async function init() {
 
     widthInput.addEventListener('change', () => {
         state.editor.resize(parseInt(widthInput.value, 10), state.editor.height);
+        savePrefs();
     });
 
     zoomInput.addEventListener('input', () => {
         state.editor.setZoom(parseInt(zoomInput.value, 10));
+        savePrefs();
     });
 
     document.getElementById('label-select').addEventListener('change', (e) => {
@@ -39,11 +84,24 @@ async function init() {
             state.editor.setColors(label.foreground_color, label.background_color);
             state.editor.resize(state.editor.width, pixelHeight(label), label.margin_px || 0);
         }
+        savePrefs();
     });
 
     setupTools();
     setupModes();
     setupActions();
+
+    // Restore saved mode (triggers toolbar visibility and initial render)
+    const modeSelect = document.getElementById('mode-select');
+    if (prefs.mode && prefs.mode !== modeSelect.value) {
+        modeSelect.value = prefs.mode;
+        modeSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Restore saved auto-feed
+    if (prefs.auto_feed) {
+        document.getElementById('auto-feed').value = prefs.auto_feed;
+    }
 
     document.getElementById('btn-rescan').addEventListener('click', () => checkStatus());
 }
@@ -143,6 +201,7 @@ function setupModes() {
             state.editor.clear();
             renderText();
         }
+        savePrefs();
     });
 
     const textInput = document.getElementById('text-input');
@@ -164,12 +223,13 @@ function setupModes() {
         updateWeightOptions();
         updateFontSizeOptions();
         renderText();
+        savePrefs();
     });
-    fontSize.addEventListener('change', () => renderText());
-    fontWeight.addEventListener('change', () => renderText());
-    textValign.addEventListener('change', () => renderText());
-    textHalign.addEventListener('change', () => renderText());
-    lineSpacing.addEventListener('change', () => renderText());
+    fontSize.addEventListener('change', () => { renderText(); savePrefs(); });
+    fontWeight.addEventListener('change', () => { renderText(); savePrefs(); });
+    textValign.addEventListener('change', () => { renderText(); savePrefs(); });
+    textHalign.addEventListener('change', () => { renderText(); savePrefs(); });
+    lineSpacing.addEventListener('change', () => { renderText(); savePrefs(); });
 
     loadFonts();
 }
@@ -235,7 +295,7 @@ function updateFontSizeOptions() {
                 opt.textContent = `${s}px`;
                 sel.appendChild(opt);
             }
-            sel.addEventListener('change', () => renderText());
+            sel.addEventListener('change', () => { renderText(); savePrefs(); });
             fontSizeEl.replaceWith(sel);
             if (sizes.includes(prevSize)) {
                 sel.value = prevSize;
@@ -265,7 +325,7 @@ function updateFontSizeOptions() {
             input.max = '128';
             input.value = prevSize || 24;
             input.style.cssText = fontSizeEl.style.cssText;
-            input.addEventListener('change', () => renderText());
+            input.addEventListener('change', () => { renderText(); savePrefs(); });
             fontSizeEl.replaceWith(input);
         }
     }
@@ -301,6 +361,21 @@ async function loadFonts() {
 
     updateWeightOptions();
     updateFontSizeOptions();
+
+    // Restore saved font preferences
+    if (prefs.font) {
+        const fontSel = document.getElementById('font-select');
+        if ([...fontSel.options].some(o => o.value === prefs.font)) {
+            fontSel.value = prefs.font;
+            updateWeightOptions();
+            updateFontSizeOptions();
+        }
+    }
+    if (prefs.font_weight) document.getElementById('font-weight').value = prefs.font_weight;
+    if (prefs.font_size) document.getElementById('font-size').value = prefs.font_size;
+    if (prefs.text_valign) document.getElementById('text-valign').value = prefs.text_valign;
+    if (prefs.text_halign) document.getElementById('text-halign').value = prefs.text_halign;
+    if (prefs.line_spacing) document.getElementById('line-spacing').value = prefs.line_spacing;
 }
 
 let renderAbort = null;
