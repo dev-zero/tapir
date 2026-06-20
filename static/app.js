@@ -2,6 +2,7 @@ import { CanvasEditor } from './canvas-editor.js';
 
 const STORAGE_KEY = 'tapir_prefs';
 let prefs = {};
+let serverDefaults = {};
 
 function loadPrefs() {
     try {
@@ -46,9 +47,10 @@ async function init() {
     const widthInput = document.getElementById('canvas-width');
     const zoomInput = document.getElementById('zoom');
 
-    // Restore saved label (overrides first-in-list default)
-    if (prefs.label) {
-        const label = state.labels.find(l => l.name === prefs.label);
+    // Restore saved label (overrides first-in-list default); fall back to server default_label
+    const labelName = prefs.label || serverDefaults.default_label;
+    if (labelName) {
+        const label = state.labels.find(l => l.name === labelName);
         if (label) {
             state.currentLabel = label;
             document.getElementById('label-select').value = label.name;
@@ -104,6 +106,10 @@ async function init() {
     }
 
     document.getElementById('btn-rescan').addEventListener('click', () => checkStatus());
+    document.getElementById('btn-reset-prefs').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+    });
 }
 
 function pixelHeight(label) {
@@ -137,6 +143,7 @@ async function loadSettings() {
     try {
         const res = await fetch('/api/settings');
         const data = await res.json();
+        serverDefaults = data;
         if (data.default_canvas_width) {
             document.getElementById('canvas-width').value = data.default_canvas_width;
         }

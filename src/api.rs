@@ -65,6 +65,7 @@ async fn status(State(state): State<SharedState>) -> Json<Value> {
 async fn get_settings(State(state): State<SharedState>) -> Json<Value> {
     let state = state.read().await;
     Json(json!({
+        "default_label": state.config.default_label,
         "default_canvas_width": state.config.default_canvas_width,
     }))
 }

@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
+    #[serde(default)]
+    pub default_label: Option<String>,
     #[serde(default = "default_canvas_width")]
     pub default_canvas_width: u16,
     #[serde(default = "default_font_favourites_medium")]
@@ -113,6 +115,7 @@ impl AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
+            default_label: Some("9mm Black on SteelBlue".to_string()),
             default_canvas_width: default_canvas_width(),
             font_favourites_medium: default_font_favourites_medium(),
             font_favourites_small: default_font_favourites_small(),
