@@ -65,29 +65,15 @@ async fn status(State(state): State<SharedState>) -> Json<Value> {
 async fn get_settings(State(state): State<SharedState>) -> Json<Value> {
     let state = state.read().await;
     Json(json!({
-        "default_label": state.config.default_label,
         "default_canvas_width": state.config.default_canvas_width,
     }))
 }
 
-#[derive(Deserialize)]
-struct SettingsUpdate {
-    #[serde(default)]
-    default_label: Option<String>,
-}
-
 async fn put_settings(
-    State(state): State<SharedState>,
-    Json(body): Json<SettingsUpdate>,
+    State(_state): State<SharedState>,
+    Json(_body): Json<Value>,
 ) -> Json<Value> {
-    let mut state = state.write().await;
-    if body.default_label.is_some() {
-        state.config.default_label = body.default_label;
-    }
-    match state.config.save("config.toml") {
-        Ok(()) => Json(json!({"ok": true})),
-        Err(e) => Json(json!({"ok": false, "error": e.to_string()})),
-    }
+    Json(json!({"ok": true}))
 }
 
 async fn list_labels(State(state): State<SharedState>) -> Json<Value> {

@@ -79,13 +79,6 @@ async function loadSettings() {
     try {
         const res = await fetch('/api/settings');
         const data = await res.json();
-        if (data.default_label) {
-            const label = state.labels.find(l => l.name === data.default_label);
-            if (label) {
-                state.currentLabel = label;
-                document.getElementById('label-select').value = label.name;
-            }
-        }
         if (data.default_canvas_width) {
             document.getElementById('canvas-width').value = data.default_canvas_width;
         }
