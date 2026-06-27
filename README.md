@@ -20,15 +20,19 @@ Then open `http://localhost:3000` in your browser.
 
 ## Docker
 
+The container runs as `nobody` (UID 65534). On Debian/Ubuntu the Dymo USB device is
+owned by group `lp` (GID 7), so pass `--group-add lp` to grant access without root
+or `--privileged`.
+
 ```sh
 docker build -t tapir .
-docker run --rm --device /dev/bus/usb -p 3000:3000 tapir
+docker run --rm --device /dev/bus/usb --group-add lp -p 3000:3000 tapir
 ```
 
 To use a custom configuration, bind-mount your `config.toml` into the container:
 
 ```sh
-docker run --rm --device /dev/bus/usb -p 3000:3000 \
+docker run --rm --device /dev/bus/usb --group-add lp -p 3000:3000 \
   -v ./config.toml:/config.toml:rw tapir
 ```
 
