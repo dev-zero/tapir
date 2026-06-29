@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -8,14 +6,10 @@ pub struct AppConfig {
     pub default_label: Option<String>,
     #[serde(default = "default_canvas_width")]
     pub default_canvas_width: u16,
-    #[serde(default = "default_font_favourites_medium")]
-    pub font_favourites_medium: Vec<String>,
-    #[serde(default = "default_font_favourites_small")]
-    pub font_favourites_small: Vec<String>,
+    #[serde(default)]
+    pub font_favourites: Vec<String>,
     #[serde(default = "default_show_all_fonts")]
     pub show_all_fonts: bool,
-    #[serde(default)]
-    pub font_native_sizes: BTreeMap<String, u32>,
 }
 
 fn default_canvas_width() -> u16 {
@@ -24,29 +18,6 @@ fn default_canvas_width() -> u16 {
 
 fn default_show_all_fonts() -> bool {
     false
-}
-
-fn default_font_favourites_medium() -> Vec<String> {
-    vec![
-        "Carlito".to_string(),
-        "Liberation Sans".to_string(),
-        "Liberation Mono".to_string(),
-        "DejaVu Sans".to_string(),
-        "DejaVu Sans Mono".to_string(),
-        "Noto Sans".to_string(),
-        "IBM Plex Mono".to_string(),
-        "IBM Plex Sans".to_string(),
-        "Inter".to_string(),
-        "Fira Mono".to_string(),
-        "Fira Sans Condensed".to_string(),
-    ]
-}
-
-fn default_font_favourites_small() -> Vec<String> {
-    vec![
-        "Thermal Sans Mono".to_string(),
-        "Tiny5".to_string(),
-    ]
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,15 +86,10 @@ impl AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            default_label: Some("9mm Black on SteelBlue".to_string()),
+            default_label: None,
             default_canvas_width: default_canvas_width(),
-            font_favourites_medium: default_font_favourites_medium(),
-            font_favourites_small: default_font_favourites_small(),
+            font_favourites: Vec::new(),
             show_all_fonts: default_show_all_fonts(),
-            font_native_sizes: BTreeMap::from([
-                ("Thermal Sans Mono".to_string(), 24),
-                ("Tiny5".to_string(), 5),
-            ]),
         }
     }
 }

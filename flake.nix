@@ -1,8 +1,8 @@
 {
-  description = "labelmanagerpnp - Rust native label printer interface";
+  description = "tapir - Rust native label printer interface";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -26,17 +26,20 @@
           buildInputs = [
             rustToolchain
             pkgs.pkg-config
+            pkgs.freetype
             pkgs.cargo-watch
             pkgs.cargo-nextest
+            pkgs.unzip
           ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
             pkgs.systemdMinimal
             pkgs.usb-modeswitch
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             pkgs.apple-sdk
+            (pkgs.darwinMinVersionHook "11.0")
           ];
 
           shellHook = ''
-            echo "labelmanagerpnp dev shell"
+            echo "tapir dev shell"
             echo "  $(rustc --version)"
             echo "  targets: aarch64-unknown-linux-gnu"
           '';

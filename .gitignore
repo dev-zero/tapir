@@ -3,5 +3,9 @@
 **/*.rs.bk
 Cargo.lock
 
+# Generated fonts (built via `make fonts`)
+/fonts/bdf/
+/fonts/otb/
+
 # Project
 /frontend/node_modules/

@@ -270,6 +270,16 @@ export class CanvasEditor {
         this.saveState();
     }
 
+    showError(msg) {
+        this.bitmap.fill(0);
+        this.render();
+        const ctx = this.ctx;
+        ctx.fillStyle = '#c00';
+        ctx.font = `${Math.max(10, this.zoom * 3)}px sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(msg, 4, this.canvas.height / 2);
+    }
+
     setReadOnly(readOnly) {
         this.readOnly = readOnly;
         this.canvas.style.cursor = readOnly ? 'default' : 'crosshair';

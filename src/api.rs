@@ -230,6 +230,8 @@ struct RenderTextRequest {
     font_size: u32,
     #[serde(default = "default_weight")]
     weight: u16,
+    #[serde(default)]
+    italic: bool,
     height: u32,
     #[serde(default = "default_valign")]
     valign: String,
@@ -266,6 +268,7 @@ async fn render_text(
         &body.font,
         body.font_size,
         body.weight,
+        body.italic,
         body.height,
         &body.valign,
         &body.halign,
@@ -279,7 +282,11 @@ async fn render_text(
             )
                 .into_response()
         }
-        None => Json(json!({"error": "font not found"})).into_response(),
+        None => (
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error": "render failed"})),
+        )
+            .into_response(),
     }
 }
 

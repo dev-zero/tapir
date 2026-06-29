@@ -10,6 +10,7 @@ use tokio::sync::RwLock;
 use axum::{Router, response::{Html, IntoResponse}, routing::get};
 use rust_embed::Embed;
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 
 #[derive(Embed)]
 #[folder = "static/"]
@@ -27,7 +28,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "labelmanagerpnp=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "tapir=debug,tower_http=debug".into()),
         )
         .init();
 
@@ -36,19 +37,16 @@ async fn main() {
     let labels = label::load_labels("labels/");
     let fonts = engine::text::FontStore::load(
         "fonts/",
-        &config.font_favourites_medium,
-        &config.font_favourites_small,
+        &config.font_favourites,
         config.show_all_fonts,
-        &config.font_native_sizes,
     );
 
     tracing::info!("Loaded {} device definitions", devices.len());
     tracing::info!("Loaded {} label definitions", labels.len());
     let groups = fonts.groups();
     tracing::info!(
-        "Loaded fonts: {} medium, {} small, {} system",
-        groups.medium.len(),
-        groups.small.len(),
+        "Loaded fonts: {} favourites, {} system",
+        groups.favourites.len(),
         groups.system.len(),
     );
 
@@ -59,6 +57,7 @@ async fn main() {
         .nest("/api", api::router())
         .fallback(get(static_handler))
         .layer(CorsLayer::permissive())
+        .layer(TraceLayer::new_for_http())
         .with_state(state);
 
     let bind = "0.0.0.0:3000";

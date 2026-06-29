@@ -23,6 +23,7 @@ function savePrefs() {
         font: document.getElementById('font-select').value,
         font_size: fontSizeEl ? fontSizeEl.value : null,
         font_weight: document.getElementById('font-weight').value,
+        font_italic: document.getElementById('font-italic').getAttribute('aria-pressed') === 'true',
         text_valign: document.getElementById('text-valign').value,
         text_halign: document.getElementById('text-halign').value,
         line_spacing: document.getElementById('line-spacing').value,
@@ -58,8 +59,8 @@ async function init() {
     }
 
     // Saved canvas width and zoom override server defaults
-    if (prefs.canvas_width) widthInput.value = prefs.canvas_width;
-    if (prefs.zoom) zoomInput.value = prefs.zoom;
+    widthInput.value = prefs.canvas_width || serverDefaults.default_canvas_width || widthInput.value;
+    zoomInput.value = prefs.zoom || '2';
 
     const height = pixelHeight(state.currentLabel);
     const margin = state.currentLabel ? (state.currentLabel.margin_px || 0) : 0;
@@ -93,17 +94,14 @@ async function init() {
     setupModes();
     setupActions();
 
-    // Restore saved mode (triggers toolbar visibility and initial render)
+    // Apply saved mode — always dispatch to ensure toolbar visibility matches,
+    // even when browser form-restoration already set the select value.
     const modeSelect = document.getElementById('mode-select');
-    if (prefs.mode && prefs.mode !== modeSelect.value) {
-        modeSelect.value = prefs.mode;
-        modeSelect.dispatchEvent(new Event('change'));
-    }
+    modeSelect.value = prefs.mode || 'draw';
+    modeSelect.dispatchEvent(new Event('change'));
 
-    // Restore saved auto-feed
-    if (prefs.auto_feed) {
-        document.getElementById('auto-feed').value = prefs.auto_feed;
-    }
+    // Restore saved auto-feed (default: symmetric)
+    document.getElementById('auto-feed').value = prefs.auto_feed || 'symmetric';
 
     document.getElementById('btn-rescan').addEventListener('click', () => checkStatus());
     document.getElementById('btn-reset-prefs').addEventListener('click', () => {
@@ -215,6 +213,7 @@ function setupModes() {
     const fontSelect = document.getElementById('font-select');
     const fontSize = document.getElementById('font-size');
     const fontWeight = document.getElementById('font-weight');
+    const fontItalic = document.getElementById('font-italic');
     const textValign = document.getElementById('text-valign');
     const textHalign = document.getElementById('text-halign');
     const lineSpacing = document.getElementById('line-spacing');
@@ -229,11 +228,18 @@ function setupModes() {
     fontSelect.addEventListener('change', () => {
         updateWeightOptions();
         updateFontSizeOptions();
+        updateItalicAvailability();
         renderText();
         savePrefs();
     });
     fontSize.addEventListener('change', () => { renderText(); savePrefs(); });
     fontWeight.addEventListener('change', () => { renderText(); savePrefs(); });
+    fontItalic.addEventListener('click', () => {
+        const pressed = fontItalic.getAttribute('aria-pressed') === 'true';
+        fontItalic.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+        renderText();
+        savePrefs();
+    });
     textValign.addEventListener('change', () => { renderText(); savePrefs(); });
     textHalign.addEventListener('change', () => { renderText(); savePrefs(); });
     lineSpacing.addEventListener('change', () => { renderText(); savePrefs(); });
@@ -241,14 +247,14 @@ function setupModes() {
     loadFonts();
 }
 
-let fontData = { medium: [], small: [], system: [] };
+let fontData = { favourites: [], system: [] };
 
 function updateWeightOptions() {
     const fontSelect = document.getElementById('font-select');
     const weightSelect = document.getElementById('font-weight');
     const selectedFamily = fontSelect.value;
 
-    const allFonts = [...fontData.medium, ...fontData.small, ...fontData.system];
+    const allFonts = [...fontData.favourites, ...fontData.system];
     const font = allFonts.find(f => f.family === selectedFamily);
 
     const prevWeight = weightSelect.value;
@@ -274,24 +280,39 @@ function updateWeightOptions() {
     }
 }
 
+function updateItalicAvailability() {
+    const fontSelect = document.getElementById('font-select');
+    const fontItalic = document.getElementById('font-italic');
+    const selectedFamily = fontSelect.value;
+
+    const allFonts = [...fontData.favourites, ...fontData.system];
+    const font = allFonts.find(f => f.family === selectedFamily);
+
+    if (font && font.has_italic) {
+        fontItalic.disabled = false;
+        fontItalic.style.opacity = '1';
+    } else {
+        fontItalic.disabled = true;
+        fontItalic.style.opacity = '0.3';
+        fontItalic.setAttribute('aria-pressed', 'false');
+    }
+}
+
 function updateFontSizeOptions() {
     const fontSelect = document.getElementById('font-select');
     const fontSizeEl = document.getElementById('font-size');
     const selectedFamily = fontSelect.value;
 
-    const allFonts = [...fontData.medium, ...fontData.small, ...fontData.system];
+    const allFonts = [...fontData.favourites, ...fontData.system];
     const font = allFonts.find(f => f.family === selectedFamily);
 
     const prevSize = parseInt(fontSizeEl.value, 10);
 
-    if (font && font.native_size) {
-        const ns = font.native_size;
-        const maxSize = Math.max(64, ns * 4);
-        const sizes = [];
-        for (let s = ns; s <= maxSize; s += ns) {
-            sizes.push(s);
-        }
+    const sizes = font && font.available_sizes && font.available_sizes.length > 0
+        ? font.available_sizes
+        : null;
 
+    if (sizes) {
         if (fontSizeEl.tagName === 'INPUT') {
             const sel = document.createElement('select');
             sel.id = 'font-size';
@@ -307,7 +328,7 @@ function updateFontSizeOptions() {
             if (sizes.includes(prevSize)) {
                 sel.value = prevSize;
             } else {
-                sel.value = ns;
+                sel.value = sizes[sizes.length - 1];
             }
         } else {
             fontSizeEl.innerHTML = '';
@@ -320,7 +341,7 @@ function updateFontSizeOptions() {
             if (sizes.includes(prevSize)) {
                 fontSizeEl.value = prevSize;
             } else {
-                fontSizeEl.value = ns;
+                fontSizeEl.value = sizes[sizes.length - 1];
             }
         }
     } else {
@@ -343,7 +364,7 @@ async function loadFonts() {
         const res = await fetch('/api/fonts');
         fontData = await res.json();
     } catch {
-        fontData = { medium: [], small: [], system: [] };
+        fontData = { favourites: [], system: [] };
     }
 
     const select = document.getElementById('font-select');
@@ -362,12 +383,12 @@ async function loadFonts() {
         select.appendChild(group);
     };
 
-    addGroup('Favourites (medium)', fontData.medium);
-    addGroup('Favourites (small)', fontData.small);
+    addGroup('Favourites', fontData.favourites);
     addGroup('System', fontData.system);
 
     updateWeightOptions();
     updateFontSizeOptions();
+    updateItalicAvailability();
 
     // Restore saved font preferences
     if (prefs.font) {
@@ -376,13 +397,19 @@ async function loadFonts() {
             fontSel.value = prefs.font;
             updateWeightOptions();
             updateFontSizeOptions();
+            updateItalicAvailability();
         }
     }
     if (prefs.font_weight) document.getElementById('font-weight').value = prefs.font_weight;
+    if (prefs.font_italic) document.getElementById('font-italic').setAttribute('aria-pressed', 'true');
     if (prefs.font_size) document.getElementById('font-size').value = prefs.font_size;
     if (prefs.text_valign) document.getElementById('text-valign').value = prefs.text_valign;
     if (prefs.text_halign) document.getElementById('text-halign').value = prefs.text_halign;
     if (prefs.line_spacing) document.getElementById('line-spacing').value = prefs.line_spacing;
+
+    if (document.getElementById('mode-select').value === 'text') {
+        renderText();
+    }
 }
 
 let renderAbort = null;
@@ -392,6 +419,7 @@ async function renderText() {
     const font = document.getElementById('font-select').value;
     const fontSize = parseInt(document.getElementById('font-size').value, 10);
     const weight = parseInt(document.getElementById('font-weight').value, 10);
+    const italic = document.getElementById('font-italic').getAttribute('aria-pressed') === 'true';
     const valign = document.getElementById('text-valign').value;
     const halign = document.getElementById('text-halign').value;
     const lineSpacing = parseInt(document.getElementById('line-spacing').value, 10);
@@ -411,14 +439,18 @@ async function renderText() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                text, font, font_size: fontSize, weight,
+                text, font, font_size: fontSize, weight, italic,
                 height: state.editor.height,
                 valign, halign,
                 line_spacing: lineSpacing,
             }),
             signal: controller.signal,
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            state.editor.showError(data.error || `Render failed (${res.status})`);
+            return;
+        }
         const blob = await res.blob();
         if (controller.signal.aborted) return;
         await state.editor.loadFromPNG(blob);
