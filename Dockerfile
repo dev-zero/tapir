@@ -1,5 +1,5 @@
 # Stage 1: Fetch fonts (BDF sources + pre-built OTB)
-FROM alpine:3.22 AS fonts
+FROM alpine:3 AS fonts
 
 RUN apk add --no-cache curl make tar xz unzip
 
@@ -8,7 +8,7 @@ COPY Makefile .
 RUN make fonts
 
 # Stage 2: Build Rust binary
-FROM rust:1.87-alpine AS builder
+FROM rust:1.96-alpine AS builder
 
 RUN apk add --no-cache musl-dev make
 
