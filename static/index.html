@@ -14,6 +14,30 @@
         .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
         .toolbar button[aria-current="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
         #font-italic[aria-pressed="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
+        #qr-auto-btn[aria-pressed="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
+        #qr-input.overflow {
+            border-color: #c62828;
+            box-shadow: 0 0 0 1px #c62828;
+        }
+        .qr-input-wrap { position: relative; }
+        .qr-input-highlights {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            padding: 0.25rem 0.4rem;
+            font: inherit;
+            white-space: pre-wrap; word-wrap: break-word;
+            color: transparent;
+            pointer-events: none;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+        .qr-input-highlights mark {
+            color: transparent;
+            background: transparent;
+            text-decoration: underline wavy #c62828;
+            text-decoration-skip-ink: none;
+        }
+        #qr-char-count { font-size: 0.75rem; color: var(--pico-muted-color); margin-top: 0.2rem; }
+        #qr-char-count.overflow { color: #c62828; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -38,6 +62,7 @@
                     <select id="mode-select">
                         <option value="draw">Draw</option>
                         <option value="text">Text</option>
+                        <option value="qr">QR Code</option>
                     </select>
                 </label>
                 <label>
@@ -95,6 +120,34 @@
             </div>
             <div class="toolbar" id="toolbar-text-input" style="display:none">
                 <textarea id="text-input" placeholder="Label text…" rows="3" style="flex:1;padding:0.25rem 0.4rem;margin:0;resize:vertical;font-family:inherit"></textarea>
+            </div>
+            <div class="toolbar" id="toolbar-qr" style="display:none">
+                <select id="qr-type" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="QR code type">
+                    <option value="standard">Standard</option>
+                    <option value="micro">Micro</option>
+                    <option value="rmqr">rMQR</option>
+                    <option value="datamatrix">Data Matrix</option>
+                </select>
+                <button id="qr-auto-btn" class="outline" aria-pressed="true" style="height:2rem;padding:0.2rem 0.6rem;margin:0;font-size:0.85rem" title="Auto-select best parameters">Auto</button>
+                <span style="border-left:2px solid var(--pico-muted-border-color);height:1.5rem;margin:0 0.25rem"></span>
+                <span style="font-size:0.75rem">Version</span>
+                <input type="range" id="qr-version" min="1" max="40" value="1" style="width:6rem;margin:0" title="QR version">
+                <span style="font-size:0.75rem;min-width:2.5rem" id="qr-version-val">V1</span>
+                <span style="font-size:0.75rem">Scale</span>
+                <input type="range" id="qr-scale" min="1" max="5" value="1" style="width:4rem;margin:0" title="Pixel scale">
+                <span style="font-size:0.75rem;min-width:1.5rem" id="qr-scale-val">1×</span>
+                <span style="font-size:0.75rem">EC</span>
+                <input type="range" id="qr-ec" min="0" max="3" value="1" style="width:4rem;margin:0" title="Error correction level">
+                <span style="font-size:0.75rem;min-width:1rem" id="qr-ec-val">M</span>
+            </div>
+            <div class="toolbar" id="toolbar-qr-input" style="display:none">
+                <div style="flex:1">
+                    <div class="qr-input-wrap">
+                        <div class="qr-input-highlights" id="qr-input-highlights" aria-hidden="true"></div>
+                        <textarea id="qr-input" placeholder="QR data…" rows="2" style="width:100%;padding:0.25rem 0.4rem;margin:0;resize:vertical;background:transparent;position:relative"></textarea>
+                    </div>
+                    <div id="qr-char-count">0 / – / –</div>
+                </div>
             </div>
             <canvas id="editor-canvas"></canvas>
         </section>

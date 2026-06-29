@@ -24,6 +24,9 @@ pub fn router() -> Router<SharedState> {
         .route("/labels/reload", post(reload_labels))
         .route("/fonts", get(list_fonts))
         .route("/render-text", post(render_text))
+        .route("/qr-capabilities", get(qr_capabilities))
+        .route("/render-qr", post(render_qr))
+        .route("/qr-validate", post(qr_validate))
         .route("/printers", get(list_printers))
         .route("/printers/{product_id}/print", post(print_bitmap))
         .route("/printers/{product_id}/feed", post(feed))
@@ -309,4 +312,103 @@ async fn render_preview(
 ) -> Json<Value> {
     let _ = body;
     Json(json!({"ok": false, "error": "not implemented"}))
+}
+
+#[derive(Deserialize)]
+struct QrCapabilitiesParams {
+    height: u32,
+}
+
+async fn qr_capabilities(Query(params): Query<QrCapabilitiesParams>) -> Json<Value> {
+    let caps = crate::engine::qr::capabilities(params.height);
+    Json(json!(caps))
+}
+
+#[derive(Deserialize)]
+struct RenderQrRequest {
+    data: String,
+    height: u32,
+    qr_type: String,
+    #[serde(default)]
+    auto: bool,
+    #[serde(default = "default_qr_version")]
+    version: usize,
+    #[serde(default = "default_halign")]
+    ec_level: String,
+    #[serde(default = "default_pixel_scale")]
+    pixel_scale: u32,
+}
+
+fn default_qr_version() -> usize {
+    1
+}
+
+async fn render_qr(Json(body): Json<RenderQrRequest>) -> axum::response::Response {
+    let result = if body.auto {
+        crate::engine::qr::auto_render(body.data.as_bytes(), &body.qr_type, body.height)
+    } else {
+        crate::engine::qr::render_qr(
+            body.data.as_bytes(),
+            &body.qr_type,
+            body.version,
+            &body.ec_level,
+            body.pixel_scale,
+            body.height,
+        )
+    };
+
+    match result {
+        Ok((bitmap, info)) => {
+            let png = bitmap.to_png();
+            (
+                [
+                    (axum::http::header::CONTENT_TYPE, "image/png".to_string()),
+                    (
+                        axum::http::HeaderName::from_static("x-qr-config"),
+                        serde_json::to_string(&info).unwrap_or_default(),
+                    ),
+                ],
+                png,
+            )
+                .into_response()
+        }
+        Err(crate::engine::qr::RenderError::DataTooLong { max_chars }) => (
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error": "data_too_long", "max_chars": max_chars})),
+        )
+            .into_response(),
+        Err(crate::engine::qr::RenderError::EmptyData) => (
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error": "empty_data"})),
+        )
+            .into_response(),
+        Err(crate::engine::qr::RenderError::DoesNotFit) => (
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error": "does_not_fit"})),
+        )
+            .into_response(),
+        Err(e) => (
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"error": format!("{e:?}")})),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+struct QrValidateRequest {
+    data: String,
+    qr_type: String,
+    version: usize,
+    ec_level: String,
+}
+
+async fn qr_validate(Json(body): Json<QrValidateRequest>) -> Json<Value> {
+    let result = crate::engine::qr::validate(
+        body.data.as_bytes(),
+        &body.qr_type,
+        body.version,
+        &body.ec_level,
+    );
+    Json(json!(result))
 }
