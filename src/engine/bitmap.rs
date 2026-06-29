@@ -40,6 +40,44 @@ impl Bitmap1Bit {
         (self.data[byte_idx] >> bit_idx) & 1 == 1
     }
 
+    /// Integer nearest-neighbor scaling (pixel doubling/tripling).
+    ///
+    /// Each source pixel becomes a `factor × factor` block in the output.
+    /// Preserves 1-bit crispness — no interpolation, no anti-aliasing.
+    pub fn scale_nearest(&self, factor: u32) -> Self {
+        if factor <= 1 {
+            return self.clone();
+        }
+        let new_width = self.width * factor;
+        let new_height = self.height * factor;
+        let mut scaled = Bitmap1Bit::new(new_width, new_height);
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if self.get_pixel(x, y) {
+                    for dy in 0..factor {
+                        for dx in 0..factor {
+                            scaled.set_pixel(x * factor + dx, y * factor + dy, true);
+                        }
+                    }
+                }
+            }
+        }
+        scaled
+    }
+
+    pub fn crop_height(&self, max_height: u32) -> Self {
+        if max_height >= self.height {
+            return self.clone();
+        }
+        let row_bytes = (self.width + 7) / 8;
+        let new_len = (row_bytes * max_height) as usize;
+        Self {
+            width: self.width,
+            height: max_height,
+            data: self.data[..new_len].to_vec(),
+        }
+    }
+
     pub fn column_bytes(&self, col: u32) -> Vec<u8> {
         let height_bytes = (self.height + 7) / 8;
         let mut bytes = vec![0u8; height_bytes as usize];

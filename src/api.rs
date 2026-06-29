@@ -239,6 +239,8 @@ struct RenderTextRequest {
     halign: String,
     #[serde(default = "default_line_spacing")]
     line_spacing: u32,
+    #[serde(default = "default_pixel_scale")]
+    pixel_scale: u32,
 }
 
 fn default_weight() -> u16 {
@@ -257,11 +259,17 @@ fn default_line_spacing() -> u32 {
     120
 }
 
+fn default_pixel_scale() -> u32 {
+    1
+}
+
 async fn render_text(
     State(state): State<SharedState>,
     Json(body): Json<RenderTextRequest>,
 ) -> axum::response::Response {
     let state = state.read().await;
+    let scale = body.pixel_scale.clamp(1, 5);
+    let effective_height = (body.height + scale - 1) / scale;
 
     match state.fonts.render_text(
         &body.text,
@@ -269,12 +277,17 @@ async fn render_text(
         body.font_size,
         body.weight,
         body.italic,
-        body.height,
+        effective_height,
         &body.valign,
         &body.halign,
         body.line_spacing,
     ) {
         Some(bitmap) => {
+            let bitmap = if scale > 1 {
+                bitmap.scale_nearest(scale).crop_height(body.height)
+            } else {
+                bitmap
+            };
             let png = bitmap.to_png();
             (
                 [(axum::http::header::CONTENT_TYPE, "image/png")],

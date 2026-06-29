@@ -3,6 +3,7 @@ import { CanvasEditor } from './canvas-editor.js';
 const STORAGE_KEY = 'tapir_prefs';
 let prefs = {};
 let serverDefaults = {};
+let initializing = true;
 
 function loadPrefs() {
     try {
@@ -13,6 +14,7 @@ function loadPrefs() {
 }
 
 function savePrefs() {
+    if (initializing) return;
     const fontSizeEl = document.getElementById('font-size');
     const saved = {
         label: document.getElementById('label-select').value,
@@ -24,6 +26,7 @@ function savePrefs() {
         font_size: fontSizeEl ? fontSizeEl.value : null,
         font_weight: document.getElementById('font-weight').value,
         font_italic: document.getElementById('font-italic').getAttribute('aria-pressed') === 'true',
+        pixel_scale: document.getElementById('pixel-scale').value,
         text_valign: document.getElementById('text-valign').value,
         text_halign: document.getElementById('text-halign').value,
         line_spacing: document.getElementById('line-spacing').value,
@@ -214,6 +217,7 @@ function setupModes() {
     const fontSize = document.getElementById('font-size');
     const fontWeight = document.getElementById('font-weight');
     const fontItalic = document.getElementById('font-italic');
+    const pixelScale = document.getElementById('pixel-scale');
     const textValign = document.getElementById('text-valign');
     const textHalign = document.getElementById('text-halign');
     const lineSpacing = document.getElementById('line-spacing');
@@ -240,6 +244,7 @@ function setupModes() {
         renderText();
         savePrefs();
     });
+    pixelScale.addEventListener('change', () => { renderText(); savePrefs(); });
     textValign.addEventListener('change', () => { renderText(); savePrefs(); });
     textHalign.addEventListener('change', () => { renderText(); savePrefs(); });
     lineSpacing.addEventListener('change', () => { renderText(); savePrefs(); });
@@ -403,9 +408,12 @@ async function loadFonts() {
     if (prefs.font_weight) document.getElementById('font-weight').value = prefs.font_weight;
     if (prefs.font_italic) document.getElementById('font-italic').setAttribute('aria-pressed', 'true');
     if (prefs.font_size) document.getElementById('font-size').value = prefs.font_size;
+    if (prefs.pixel_scale) document.getElementById('pixel-scale').value = prefs.pixel_scale;
     if (prefs.text_valign) document.getElementById('text-valign').value = prefs.text_valign;
     if (prefs.text_halign) document.getElementById('text-halign').value = prefs.text_halign;
     if (prefs.line_spacing) document.getElementById('line-spacing').value = prefs.line_spacing;
+
+    initializing = false;
 
     if (document.getElementById('mode-select').value === 'text') {
         renderText();
@@ -420,6 +428,7 @@ async function renderText() {
     const fontSize = parseInt(document.getElementById('font-size').value, 10);
     const weight = parseInt(document.getElementById('font-weight').value, 10);
     const italic = document.getElementById('font-italic').getAttribute('aria-pressed') === 'true';
+    const pixelScale = parseInt(document.getElementById('pixel-scale').value, 10);
     const valign = document.getElementById('text-valign').value;
     const halign = document.getElementById('text-halign').value;
     const lineSpacing = parseInt(document.getElementById('line-spacing').value, 10);
@@ -443,6 +452,7 @@ async function renderText() {
                 height: state.editor.height,
                 valign, halign,
                 line_spacing: lineSpacing,
+                pixel_scale: pixelScale,
             }),
             signal: controller.signal,
         });
