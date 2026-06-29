@@ -134,6 +134,7 @@ $(FONT_DIR)/.profont: | $(FONT_DIR)
 	@echo "$(PROFONT_SHA256)  /tmp/profont-otb-2.zip" | $(SHA256) -c -
 	@unzip -qo /tmp/profont-otb-2.zip -d /tmp/
 	@cp /tmp/profont-otb-2/ProFontOTB.otb $(FONT_DIR)/profont-regular.otb
+	@chmod 644 $(FONT_DIR)/profont-regular.otb
 	@rm -rf /tmp/profont-otb-2 /tmp/profont-otb-2.zip
 	@touch $@
 
