@@ -10,7 +10,7 @@ RUN make fonts
 # Stage 2: Build Rust binary
 FROM rust:1.96-alpine AS builder
 
-RUN apk add --no-cache musl-dev make
+RUN apk add --no-cache musl-dev make zlib-dev zlib-static
 
 WORKDIR /src
 COPY . .
@@ -30,6 +30,7 @@ COPY --from=builder /etc/group.min  /etc/group
 COPY --from=builder /src/target/release/tapir /tapir
 COPY --from=builder /src/config.toml /config.toml
 COPY --from=builder /src/labels/ /labels/
+COPY --from=builder /src/devices/ /devices/
 COPY --from=fonts   /src/fonts/otb/ /fonts/otb/
 
 USER nobody
