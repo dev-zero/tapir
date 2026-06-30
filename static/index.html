@@ -11,7 +11,8 @@
             image-rendering: pixelated;
             cursor: crosshair;
         }
-        .toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+        .toolbar-group { display: flex; gap: 0.5rem; align-items: center; }
         .toolbar button[aria-current="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
         #font-italic[aria-pressed="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
         #qr-auto-btn[aria-pressed="true"] { background: var(--pico-primary); color: var(--pico-primary-inverse); }
@@ -74,71 +75,81 @@
 
         <section id="editor">
             <div class="toolbar" id="toolbar-draw">
-                <span style="font-size:0.8rem">Width (px)</span>
-                <input type="number" id="canvas-width" value="200" min="16" max="1000" step="8" style="width:5rem;padding:0.25rem 0.4rem;margin:0" title="Width (px)">
-                <span>|</span>
-                <button id="tool-pencil" aria-current="true">Pencil</button>
-                <button id="tool-eraser">Eraser</button>
-                <button id="tool-line">Line</button>
-                <button id="tool-rect">Rect</button>
-                <button id="tool-fill">Fill</button>
-                <span>|</span>
-                <button id="btn-undo">Undo</button>
-                <button id="btn-redo">Redo</button>
-                <button id="btn-clear">Clear</button>
+                <div class="toolbar-group">
+                    <span style="font-size:0.8rem">Width (px)</span>
+                    <input type="number" id="canvas-width" value="200" min="16" max="1000" step="8" style="width:5rem;padding:0.25rem 0.4rem;margin:0" title="Width (px)">
+                </div>
+                <div class="toolbar-group">
+                    <button id="tool-pencil" aria-current="true">Pencil</button>
+                    <button id="tool-eraser">Eraser</button>
+                    <button id="tool-line">Line</button>
+                    <button id="tool-rect">Rect</button>
+                    <button id="tool-fill">Fill</button>
+                </div>
+                <div class="toolbar-group">
+                    <button id="btn-undo">Undo</button>
+                    <button id="btn-redo">Redo</button>
+                    <button id="btn-clear">Clear</button>
+                </div>
             </div>
             <div class="toolbar" id="toolbar-text" style="display:none">
-                <select id="font-select" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem"></select>
-                <input type="number" id="font-size" value="54" min="8" max="128" step="1" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font size (px)">
-                <span style="font-size:0.8rem">px</span>
-                <select id="pixel-scale" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Pixel scale (nearest-neighbor)">
-                    <option value="1">1×</option>
-                    <option value="2">2×</option>
-                    <option value="3">3×</option>
-                    <option value="4">4×</option>
-                    <option value="5">5×</option>
-                </select>
-                <select id="font-weight" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font weight">
-                    <option value="400">Regular</option>
-                    <option value="700">Bold</option>
-                </select>
-                <button id="font-italic" class="outline" aria-pressed="false" style="height:2rem;padding:0.2rem 0.6rem;margin:0;font-size:0.85rem;font-style:italic" title="Italic">I</button>
-                <span style="border-left:2px solid var(--pico-muted-border-color);height:1.5rem;margin:0 0.25rem"></span>
-                <select id="text-valign" style="width:6rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Vertical align">
-                    <option value="center">Middle</option>
-                    <option value="top">Top</option>
-                    <option value="bottom">Bottom</option>
-                </select>
-                <select id="text-halign" style="width:5.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Horizontal align">
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-                <span style="font-size:0.8rem">Spacing</span>
-                <input type="number" id="line-spacing" value="120" min="50" max="300" step="5" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Line spacing (%)">
-                <span style="font-size:0.8rem">%</span>
+                <div class="toolbar-group">
+                    <select id="font-select" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem"></select>
+                    <input type="number" id="font-size" value="54" min="8" max="128" step="1" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font size (px)">
+                    <span style="font-size:0.8rem">px</span>
+                    <select id="pixel-scale" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Pixel scale (nearest-neighbor)">
+                        <option value="1">1×</option>
+                        <option value="2">2×</option>
+                        <option value="3">3×</option>
+                        <option value="4">4×</option>
+                        <option value="5">5×</option>
+                    </select>
+                    <select id="font-weight" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Font weight">
+                        <option value="400">Regular</option>
+                        <option value="700">Bold</option>
+                    </select>
+                    <button id="font-italic" class="outline" aria-pressed="false" style="height:2rem;padding:0.2rem 0.6rem;margin:0;font-size:0.85rem;font-style:italic" title="Italic">I</button>
+                </div>
+                <div class="toolbar-group">
+                    <select id="text-valign" style="width:6rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Vertical align">
+                        <option value="center">Middle</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                    <select id="text-halign" style="width:5.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Horizontal align">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                    </select>
+                    <span style="font-size:0.8rem">Spacing</span>
+                    <input type="number" id="line-spacing" value="120" min="50" max="300" step="5" style="width:4.5rem;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="Line spacing (%)">
+                    <span style="font-size:0.8rem">%</span>
+                </div>
             </div>
             <div class="toolbar" id="toolbar-text-input" style="display:none">
                 <textarea id="text-input" placeholder="Label text…" rows="3" style="flex:1;padding:0.25rem 0.4rem;margin:0;resize:vertical;font-family:inherit"></textarea>
             </div>
             <div class="toolbar" id="toolbar-qr" style="display:none">
-                <select id="qr-type" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="QR code type">
-                    <option value="standard">Standard</option>
-                    <option value="micro">Micro</option>
-                    <option value="rmqr">rMQR</option>
-                    <option value="datamatrix">Data Matrix</option>
-                </select>
-                <button id="qr-auto-btn" class="outline" aria-pressed="true" style="height:2rem;padding:0.2rem 0.6rem;margin:0;font-size:0.85rem" title="Auto-select best parameters">Auto</button>
-                <span style="border-left:2px solid var(--pico-muted-border-color);height:1.5rem;margin:0 0.25rem"></span>
-                <span style="font-size:0.75rem">Version</span>
-                <input type="range" id="qr-version" min="1" max="40" value="1" style="width:6rem;margin:0" title="QR version">
-                <span style="font-size:0.75rem;min-width:2.5rem" id="qr-version-val">V1</span>
-                <span style="font-size:0.75rem">Scale</span>
-                <input type="range" id="qr-scale" min="1" max="5" value="1" style="width:4rem;margin:0" title="Pixel scale">
-                <span style="font-size:0.75rem;min-width:1.5rem" id="qr-scale-val">1×</span>
-                <span style="font-size:0.75rem">EC</span>
-                <input type="range" id="qr-ec" min="0" max="3" value="1" style="width:4rem;margin:0" title="Error correction level">
-                <span style="font-size:0.75rem;min-width:1rem" id="qr-ec-val">M</span>
+                <div class="toolbar-group">
+                    <select id="qr-type" style="width:auto;height:2rem;padding:0.2rem 0.4rem;margin:0;font-size:0.85rem" title="QR code type">
+                        <option value="standard">Standard</option>
+                        <option value="micro">Micro</option>
+                        <option value="rmqr">rMQR</option>
+                        <option value="datamatrix">Data Matrix</option>
+                    </select>
+                    <button id="qr-auto-btn" class="outline" aria-pressed="true" style="height:2rem;padding:0.2rem 0.6rem;margin:0;font-size:0.85rem" title="Auto-select best parameters">Auto</button>
+                </div>
+                <div class="toolbar-group">
+                    <span style="font-size:0.75rem">Version</span>
+                    <input type="range" id="qr-version" min="1" max="40" value="1" style="width:6rem;margin:0" title="QR version">
+                    <span style="font-size:0.75rem;min-width:2.5rem" id="qr-version-val">V1</span>
+                    <span style="font-size:0.75rem">Scale</span>
+                    <input type="range" id="qr-scale" min="1" max="5" value="1" style="width:4rem;margin:0" title="Pixel scale">
+                    <span style="font-size:0.75rem;min-width:1.5rem" id="qr-scale-val">1×</span>
+                    <span style="font-size:0.75rem">EC</span>
+                    <input type="range" id="qr-ec" min="0" max="3" value="1" style="width:4rem;margin:0" title="Error correction level">
+                    <span style="font-size:0.75rem;min-width:1rem" id="qr-ec-val">M</span>
+                </div>
             </div>
             <div class="toolbar" id="toolbar-qr-input" style="display:none">
                 <div style="flex:1">
