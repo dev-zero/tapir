@@ -1,7 +1,9 @@
 # Stage 1: Fetch fonts (BDF sources + pre-built OTB)
 FROM alpine:3 AS fonts
 
-RUN apk add --no-cache curl make tar xz unzip
+RUN apk add --no-cache curl make tar xz unzip \
+    font-dejavu font-liberation font-inconsolata font-noto-cjk \
+    font-noto-emoji
 
 WORKDIR /src
 COPY Makefile .
@@ -32,6 +34,7 @@ COPY --from=builder /src/config.toml /config.toml
 COPY --from=builder /src/labels/ /labels/
 COPY --from=builder /src/devices/ /devices/
 COPY --from=fonts   /src/fonts/otb/ /fonts/otb/
+COPY --from=fonts   /usr/share/fonts/ /usr/share/fonts/
 
 USER nobody
 

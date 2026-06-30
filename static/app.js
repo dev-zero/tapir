@@ -464,7 +464,7 @@ async function loadFonts() {
         select.appendChild(group);
     };
 
-    addGroup('Favourites', fontData.favourites);
+    addGroup('Favourites (Bitmap)', fontData.favourites);
     addGroup('System', fontData.system);
 
     updateWeightOptions();

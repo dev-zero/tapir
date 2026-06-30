@@ -58,7 +58,7 @@ impl FontStore {
     pub fn load(
         font_dir: &str,
         favourites: &[String],
-        show_all_fonts: bool,
+        load_system_fonts: bool,
     ) -> Self {
         let library = Library::init().expect("Failed to initialize FreeType");
 
@@ -69,7 +69,7 @@ impl FontStore {
             scan_font_dir(&library, &otb_dir, &mut fonts);
         }
 
-        if show_all_fonts {
+        if load_system_fonts {
             for dir in system_font_dirs() {
                 let p = Path::new(&dir);
                 if p.is_dir() {
@@ -124,7 +124,7 @@ impl FontStore {
             favourites.iter().map(|s| s.as_str()).collect();
 
         let mut system = Vec::new();
-        if show_all_fonts {
+        if load_system_fonts {
             for (family, weights) in &family_weights {
                 if !favourites_set.contains(family.as_str()) {
                     let mut available_sizes = family_sizes.get(family.as_str()).cloned().unwrap_or_default();

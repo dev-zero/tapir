@@ -1,6 +1,6 @@
 default_label = "9mm Black on SteelBlue"
 default_canvas_width = 200
-show_all_fonts = false
+load_system_fonts = true
 font_favourites = [
     "Helvetica",
     "Times",

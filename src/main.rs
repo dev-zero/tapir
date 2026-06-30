@@ -8,13 +8,13 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use axum::{Router, response::{Html, IntoResponse}, routing::get};
-use rust_embed::Embed;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
-#[derive(Embed)]
-#[folder = "static/"]
-struct StaticAssets;
+static STATIC_INDEX: &str = include_str!("../static/index.html");
+static STATIC_APP_JS: &str = include_str!("../static/app.js");
+static STATIC_CANVAS_JS: &str = include_str!("../static/canvas-editor.js");
+static STATIC_PICO_CSS: &str = include_str!("../static/pico.min.css");
 
 pub struct AppState {
     pub config: config::AppConfig,
@@ -25,11 +25,13 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    let level = if cfg!(debug_assertions) {
+        tracing::Level::DEBUG
+    } else {
+        tracing::Level::INFO
+    };
     tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "tapir=debug,tower_http=debug".into()),
-        )
+        .with_max_level(level)
         .init();
 
     let config = config::AppConfig::load_or_default("config.toml");
@@ -38,7 +40,7 @@ async fn main() {
     let fonts = engine::text::FontStore::load(
         "fonts/",
         &config.font_favourites,
-        config.show_all_fonts,
+        config.load_system_fonts,
     );
 
     tracing::info!("Loaded {} device definitions", devices.len());
@@ -98,25 +100,24 @@ async fn shutdown_signal() {
     tracing::info!("Shutdown signal received, finishing in-flight requests...");
 }
 
-async fn index_handler() -> Html<String> {
-    match StaticAssets::get("index.html") {
-        Some(content) => Html(String::from_utf8_lossy(&content.data).to_string()),
-        None => Html("<h1>index.html not found</h1>".to_string()),
-    }
+async fn index_handler() -> Html<&'static str> {
+    Html(STATIC_INDEX)
 }
 
 async fn static_handler(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
     let path = uri.path().trim_start_matches('/');
 
-    match StaticAssets::get(path) {
-        Some(content) => {
-            let mime = mime_guess::from_path(path).first_or_octet_stream();
-            (
-                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
-                content.data.to_vec(),
-            )
-                .into_response()
-        }
-        None => axum::http::StatusCode::NOT_FOUND.into_response(),
-    }
+    let (content, mime): (&[u8], &str) = match path {
+        "app.js" => (STATIC_APP_JS.as_bytes(), "application/javascript"),
+        "canvas-editor.js" => (STATIC_CANVAS_JS.as_bytes(), "application/javascript"),
+        "pico.min.css" => (STATIC_PICO_CSS.as_bytes(), "text/css"),
+        "index.html" => (STATIC_INDEX.as_bytes(), "text/html"),
+        _ => return axum::http::StatusCode::NOT_FOUND.into_response(),
+    };
+
+    (
+        [(axum::http::header::CONTENT_TYPE, mime)],
+        content,
+    )
+        .into_response()
 }

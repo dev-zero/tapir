@@ -8,15 +8,15 @@ pub struct AppConfig {
     pub default_canvas_width: u16,
     #[serde(default)]
     pub font_favourites: Vec<String>,
-    #[serde(default = "default_show_all_fonts")]
-    pub show_all_fonts: bool,
+    #[serde(default = "default_load_system_fonts")]
+    pub load_system_fonts: bool,
 }
 
 fn default_canvas_width() -> u16 {
     200
 }
 
-fn default_show_all_fonts() -> bool {
+fn default_load_system_fonts() -> bool {
     false
 }
 
@@ -89,7 +89,7 @@ impl Default for AppConfig {
             default_label: None,
             default_canvas_width: default_canvas_width(),
             font_favourites: Vec::new(),
-            show_all_fonts: default_show_all_fonts(),
+            load_system_fonts: default_load_system_fonts(),
         }
     }
 }

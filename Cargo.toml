@@ -7,10 +7,8 @@ description = "Rust-native web interface for Dymo LabelManager PnP"
 
 [dependencies]
 axum = "0.8"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync"] }
 tower-http = { version = "0.7", features = ["cors", "trace"] }
-rust-embed = { version = "8", features = ["interpolate-folder-path"] }
-mime_guess = "2"
 nusb = "0.2"
 image = { version = "0.25", default-features = false, features = ["png"] }
 freetype-rs = { version = "0.38", features = ["bundled"] }
@@ -20,7 +18,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = "0.3"
 
 [profile.release]
 opt-level = "z"
