@@ -17,7 +17,7 @@ fn default_canvas_width() -> u16 {
 }
 
 fn default_load_system_fonts() -> bool {
-    false
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
