@@ -409,7 +409,7 @@ fn measure_line(face: &freetype::Face, line: &str, load_flags: LoadFlag) -> i32 
     width
 }
 
-/// Scan a directory for font files and extract metadata.
+/// Scan a directory (recursively) for font files and extract metadata.
 fn scan_font_dir(library: &Library, dir: &Path, fonts: &mut Vec<FontEntry>) {
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
@@ -418,6 +418,12 @@ fn scan_font_dir(library: &Library, dir: &Path, fonts: &mut Vec<FontEntry>) {
 
     for entry in entries.flatten() {
         let path = entry.path();
+
+        if path.is_dir() {
+            scan_font_dir(library, &path, fonts);
+            continue;
+        }
+
         let ext = path
             .extension()
             .and_then(|e| e.to_str())
