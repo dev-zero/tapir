@@ -25,10 +25,25 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let level = if cfg!(debug_assertions) {
-        tracing::Level::DEBUG
-    } else {
-        tracing::Level::INFO
+    let level = match std::env::var("TAPIR_LOG").or_else(|_| std::env::var("RUST_LOG")) {
+        Ok(val) => match val.to_lowercase().as_str() {
+            "trace" => tracing::Level::TRACE,
+            "debug" => tracing::Level::DEBUG,
+            "info" => tracing::Level::INFO,
+            "warn" | "warning" => tracing::Level::WARN,
+            "error" => tracing::Level::ERROR,
+            _ => {
+                eprintln!("Unknown log level '{val}', defaulting to INFO");
+                tracing::Level::INFO
+            }
+        },
+        Err(_) => {
+            if cfg!(debug_assertions) {
+                tracing::Level::DEBUG
+            } else {
+                tracing::Level::INFO
+            }
+        }
     };
     tracing_subscriber::fmt()
         .with_max_level(level)
